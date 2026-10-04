@@ -56,7 +56,8 @@ async function run() {
     set('synced');
   } catch (e) {
     if (e instanceof ApiError && e.status === 409) { // someone wrote between our read and write: merge once more
-      try { const remote = await fetchRemote(); if (remote) { await apply(merge(store.exportAll().stores, remote.stores)); await put(remote.etag); } set('synced'); return; } catch (e2) { e = e2; }
+      try { const remote = await fetchRemote(); if (remote) { await apply(merge(store.exportAll().stores, remote.stores)); await put(remote.etag); } else await put(null); set('synced'); return; }
+      catch (e2) { e = e2.status === 409 ? new ApiError(409, 'Another device saved at the same moment. Tap Sync now to retry.') : e2; }
     }
     if (e instanceof ApiError && e.status === 401) set('auth', 'Your session expired. Please log in again.');
     else if (e instanceof ApiError && e.network) set('offline', 'Offline — changes will sync when you reconnect.');

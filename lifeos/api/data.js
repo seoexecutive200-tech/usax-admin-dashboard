@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const rec = await readJSON(key);
       if (!rec) return send(res, 200, { empty: true });
-      return send(res, 200, { stores: rec.json.stores, etag: rec.etag, updatedAt: rec.json.updatedAt, appVersion: rec.json.appVersion });
+      return send(res, 200, { stores: rec.json.stores, etag: String(rec.json.rev || 0), updatedAt: rec.json.updatedAt, appVersion: rec.json.appVersion });
     }
     if (req.method === 'PUT') {
       const body = await readBody(req, MAX_BYTES);
@@ -27,14 +27,13 @@ export default async function handler(req, res) {
         if (!Array.isArray(arr) || arr.some((r) => !r || typeof r.id !== 'string')) return send(res, 400, { error: `Invalid ${n}` });
         stores[n] = arr;
       }
-      const doc = JSON.parse(scrubKeys(JSON.stringify({ stores, appVersion: String(body.appVersion || ''), schemaVersion: Number(body.schemaVersion) || 1, updatedAt: new Date().toISOString() })));
-      try {
-        const etag = await writeJSON(key, doc, body.ifMatch ? { ifMatch: String(body.ifMatch) } : { create: true });
-        return send(res, 200, { etag, updatedAt: doc.updatedAt });
-      } catch (e) {
-        if (e.code === 'CONFLICT') return send(res, 409, { error: 'conflict' });
-        throw e;
-      }
+      // Optimistic concurrency with our own revision counter (blob ETag formats differ between reads and writes).
+      const cur = await readJSON(key);
+      const curRev = cur?.json.rev || 0;
+      if (cur && String(body.ifMatch ?? '') !== String(curRev)) return send(res, 409, { error: 'conflict' });
+      const doc = JSON.parse(scrubKeys(JSON.stringify({ stores, rev: curRev + 1, appVersion: String(body.appVersion || ''), schemaVersion: Number(body.schemaVersion) || 1, updatedAt: new Date().toISOString() })));
+      await writeJSON(key, doc);
+      return send(res, 200, { etag: String(doc.rev), updatedAt: doc.updatedAt });
     }
     return send(res, 405, { error: 'Method not allowed' });
   } catch (e) {

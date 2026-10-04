@@ -41,10 +41,10 @@ export default async function handler(req, res) {
       }
       const ok = await verifyPassword(password, user);
       if (!ok) {
-        if (user) { const fails = (user.fails || 0) + 1; await saveUser({ ...user, fails: fails >= MAX_FAILS ? 0 : fails, lockUntil: fails >= MAX_FAILS ? Date.now() + LOCK_MS : 0 }, { ifMatch: rec.etag }).catch(() => {}); }
+        if (user) { const fails = (user.fails || 0) + 1; await saveUser({ ...user, fails: fails >= MAX_FAILS ? 0 : fails, lockUntil: fails >= MAX_FAILS ? Date.now() + LOCK_MS : 0 }).catch(() => {}); }
         return send(res, 401, { error: 'Incorrect email or password.' });
       }
-      if (user.fails || user.lockUntil) await saveUser({ ...user, fails: 0, lockUntil: 0 }, { ifMatch: rec.etag }).catch(() => {});
+      if (user.fails || user.lockUntil) await saveUser({ ...user, fails: 0, lockUntil: 0 }).catch(() => {});
       return send(res, 200, { user: publicUser(user) }, { 'Set-Cookie': sessionCookie(req, signSession(user)) });
     }
     if (body.action === 'delete') {
