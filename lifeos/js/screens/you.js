@@ -10,7 +10,9 @@ import { loadDemo, removeDemo, hasDemo } from '../seed.js';
 import { commit, askSheet } from '../sheets.js';
 import { navigate } from '../router.js';
 import { exportWeekly } from './insights.js';
-import { isPersistent } from '../db.js';
+import { isPersistent, getDbName, deleteDatabase } from '../db.js';
+import { sync, flush, syncNow, hasPending, clearSyncState, stopSync } from '../sync.js';
+import { forgetUser, logoutRequest, deleteAccountRequest } from '../account.js';
 
 const MODELS = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'meta-llama/llama-4-scout-17b-16e-instruct'];
 let testing = false; let testMsg = '';
@@ -23,6 +25,16 @@ function memoryCard(m) {
     <button class="btn btn-sm ${m.private ? 'btn-on' : ''}" data-act="m-private" data-id="${m.id}" aria-pressed="${!!m.private}">${icon('lock', 13)} Private</button><button class="btn btn-sm ${m.useForAdvice === false ? '' : 'btn-on'}" data-act="m-use" data-id="${m.id}" aria-pressed="${m.useForAdvice !== false}" ${m.private ? 'disabled' : ''}>Use for advice</button><button class="btn btn-sm" data-act="m-pin" data-id="${m.id}">${m.pinned ? 'Unpin' : 'Pin'}</button></div></div>`;
 }
 const fin = () => A.financeSummary();
+function accountCard() {
+  const u = window.__account;
+  if (!u) return h`<section class="card acct"><div class="eyebrow">Account</div><p class="small muted">This LifeOS host doesn’t have accounts enabled, so your data is saved only on this device. Use Export to back it up.</p></section>`;
+  const st = sync.status; const tone = st === 'synced' ? 'ok' : st === 'error' || st === 'auth' ? 'bad' : 'warn';
+  const text = st === 'synced' ? `Synced ${sync.lastSync && Date.now() - sync.lastSync > 60000 ? fmtRelative(sync.lastSync) : 'just now'}` : st === 'syncing' ? 'Syncing…' : st === 'pending' ? 'Changes waiting to sync…' : st === 'offline' ? 'Offline — will sync when you reconnect' : st === 'auth' ? 'Session expired — log in again' : st === 'error' ? `Sync problem: ${sync.message}` : 'Not synced yet';
+  return h`<section class="card acct"><div class="eyebrow">Account</div><div class="row between gap"><div class="grow"><b>${u.name || u.email}</b><br><small class="muted">${u.email}</small></div></div>
+    <div class="row gap center"><i class="acct-dot ${tone}"></i><span class="small">${text}</span></div>
+    <div class="row gap wrap"><button class="btn btn-sm" data-act="sync-now">${icon('refresh', 14)} Sync now</button><button class="btn btn-sm" data-act="logout">Log out</button><button class="btn btn-sm btn-danger-ghost" data-act="del-account">Delete account</button></div>
+    <p class="muted tiny">Your data is stored on the LifeOS server so it follows your account. It isn’t end-to-end encrypted. Your AI key is never uploaded.</p></section>`;
+}
 const money = (n) => `${Math.round(n).toLocaleString()}`;
 
 export default {
@@ -34,6 +46,7 @@ export default {
     const pri = [...p.priorities].sort((a, b) => b.weight - a.weight);
     return h`<div class="screen you">
       <header class="top"><div class="logo">Life<b>OS</b></div><span></span></header><div class="hero"><h1>You</h1><p class="muted">Your profile, priorities, memory and settings. Everything stays on this device.</p></div>
+      ${accountCard()}
       <section class="card"><div class="eyebrow">Profile</div>${field('Name', h`<input class="input" data-input="name" value="${p.name}" maxlength="40" placeholder="What should I call you?">`)}
         <div class="field"><span class="field-label">Appearance</span>${seg('theme', [['dark', 'Dark'], ['light', 'Light'], ['system', 'System']], s.theme)}</div>
         <div class="field"><span class="field-label">Reduce motion</span>${seg('motion', [['auto', 'Auto'], ['on', 'On'], ['off', 'Off']], s.reducedMotion)}</div>
@@ -133,9 +146,45 @@ export default {
     demo: async () => { await loadDemo(); toast('Demo data loaded — remove it any time'); adv.notify('demo'); },
     rmdemo: async () => { await removeDemo(); toast('Demo data removed'); },
     reset: () => resetSheet(),
+    'sync-now': async () => { await syncNow(); toast(sync.status === 'synced' ? 'Up to date' : sync.message || 'Could not sync', { tone: sync.status === 'synced' ? '' : 'warn' }); },
+    logout: () => logoutSheet(), 'del-account': () => deleteAccountSheet(),
   },
 };
 
+function logoutSheet() {
+  const u = window.__account;
+  openSheet({ title: 'Log out', body: h`<p class="muted">Log out of <b>${u.email}</b>? Your data stays safe in your account.</p>
+    <label class="check"><input type="checkbox" id="rm" checked><span>Also remove this account’s data and AI key from this device (recommended on shared devices)</span></label><p class="form-error" id="le" role="alert"></p>
+    <div class="row gap end"><button class="btn" data-no>Cancel</button><button class="btn btn-primary" id="go">Log out</button></div>`,
+    onOpen(s) {
+      s.el.querySelector('[data-no]').onclick = s.close;
+      s.el.querySelector('#go').onclick = async (e) => {
+        e.target.disabled = true; e.target.textContent = 'Syncing…'; const rm = s.el.querySelector('#rm').checked;
+        const ok = await flush();
+        if (!ok && hasPending() && !s.el.dataset.force) { s.el.querySelector('#le').textContent = 'Some changes couldn’t sync yet (are you offline?). Log out anyway? They will be lost.'; s.el.dataset.force = '1'; e.target.disabled = false; e.target.textContent = 'Log out anyway'; return; }
+        await endSession(rm);
+      };
+    } });
+}
+async function endSession(removeLocal) {
+  const u = window.__account; stopSync(); await logoutRequest(); forgetUser();
+  if (removeLocal) { await G.clearKey(); clearSyncState(u.id); await deleteDatabase(getDbName()); }
+  location.hash = '#/today'; location.reload();
+}
+function deleteAccountSheet() {
+  openSheet({ title: 'Delete account', body: h`<p class="muted">This permanently deletes your account and all synced data from the server and this device. It can’t be undone. Export a backup first if you might want it.</p>
+    ${field('Confirm with your password', h`<input class="input" type="password" id="dp" autocomplete="current-password">`)}<p class="form-error" id="de" role="alert"></p>
+    <div class="row gap end"><button class="btn" data-no>Cancel</button><button class="btn btn-danger" id="dgo">Delete everything</button></div>`,
+    onOpen(s) {
+      s.el.querySelector('[data-no]').onclick = s.close;
+      s.el.querySelector('#dgo').onclick = async (e) => {
+        const pw = s.el.querySelector('#dp').value; if (!pw) { s.el.querySelector('#de').textContent = 'Enter your password.'; return; }
+        e.target.disabled = true;
+        try { await deleteAccountRequest(pw); } catch (err) { s.el.querySelector('#de').textContent = err.network ? 'You need to be online to delete your account.' : err.message; e.target.disabled = false; return; }
+        await endSession(true);
+      };
+    } });
+}
 async function runTest() {
   if (testing) return; testing = true; testMsg = ''; navigate('#/you');
   try { const r = await G.testConnection(); testMsg = `OK — connected (model replied “${r}”).`; } catch (e) { testMsg = e instanceof G.AIError ? e.message : 'Could not complete the test.'; }
@@ -205,5 +254,5 @@ function affordSheet() {
 }
 function resetSheet() {
   openSheet({ title: 'Reset all data', body: h`<p class="muted">This permanently deletes everything on this device: logs, events, memories, reports and settings. Export first if you might want it back. Your API key will also be cleared.</p>${field('Type RESET to confirm', h`<input class="input" id="rs" autocomplete="off" autocapitalize="characters">`)}<div class="row gap end"><button class="btn" data-no>Cancel</button><button class="btn btn-danger" id="rgo" disabled>Delete everything</button></div>`,
-    onOpen(s) { const i = s.el.querySelector('#rs'); const b = s.el.querySelector('#rgo'); i.addEventListener('input', () => { b.disabled = i.value.trim() !== 'RESET'; }); s.el.querySelector('[data-no]').onclick = s.close; b.onclick = async () => { s.close(); await G.clearKey(); await store.resetAll(); applyTheme(); applyMotion(); toast('All data deleted'); navigate('#/today'); setTimeout(() => location.reload(), 600); }; } });
+    onOpen(s) { const i = s.el.querySelector('#rs'); const b = s.el.querySelector('#rgo'); i.addEventListener('input', () => { b.disabled = i.value.trim() !== 'RESET'; }); s.el.querySelector('[data-no]').onclick = s.close; b.onclick = async () => { s.close(); await G.clearKey(); await store.resetAll(); await flush(); applyTheme(); applyMotion(); toast('All data deleted'); navigate('#/today'); setTimeout(() => location.reload(), 600); }; } });
 }

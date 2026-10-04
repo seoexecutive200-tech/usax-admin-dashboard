@@ -52,7 +52,7 @@ export default {
     search: () => searchSheet(), bell: () => notificationsSheet(),
     day: (el) => { sel = el.dataset.k; navigate('#/plan'); },
     wk: (el) => { sel = dayKey(addDays(parseKey(sel), Number(el.dataset.d))); navigate('#/plan'); },
-    add: () => eventFormSheet({ defaults: { start: (() => { const d = parseKey(sel); const n = new Date(); d.setHours(sel === dayKey() ? Math.min(23, n.getHours() + 1) : 9, 0); return d; })() } }),
+    add: () => eventFormSheet({ defaults: { start: (() => { if (sel !== dayKey()) { const d = parseKey(sel); d.setHours(9, 0); return d; } return new Date(Math.ceil((Date.now() + 5 * 60000) / 1800000) * 1800000); })() } }),
     event: (el) => eventDetailSheet(el.dataset.id), ready: (el) => navigate(`#/readiness/${el.dataset.id}`),
     addtask: () => taskFormSheet({}),
     tdone: async (el) => { const t = store.get('tasks', el.dataset.id); const prev = t.status; await store.save('tasks', { id: t.id, status: prev === 'done' ? 'open' : 'done' }); if (prev !== 'done') toast('Task done', { undo: () => store.save('tasks', { id: t.id, status: 'open' }) }); },

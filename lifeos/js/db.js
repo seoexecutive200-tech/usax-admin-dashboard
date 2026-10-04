@@ -1,8 +1,12 @@
 // IndexedDB access layer. Only store.js talks to this module.
 import { SCHEMA_VERSION } from './util.js';
 
-export const DB_NAME = 'lifeos';
 export const DB_VERSION = 1;
+let dbName = 'lifeos';
+export const DB_NAME = 'lifeos'; // default (signed-out / local-only) database
+/** Each signed-in account gets its own database so users on one browser never see each other's data. Call before first use. */
+export function setDbName(name) { dbName = name; dbPromise = null; memoryMode = false; }
+export const getDbName = () => dbName;
 
 export const STORE_DEFS = {
   profiles: {}, settings: {}, activities: {},
@@ -35,7 +39,7 @@ function open() {
   dbPromise = new Promise((resolve) => {
     if (!('indexedDB' in globalThis)) { memoryMode = true; return resolve(null); }
     let req;
-    try { req = indexedDB.open(DB_NAME, DB_VERSION); } catch { memoryMode = true; return resolve(null); }
+    try { req = indexedDB.open(dbName, DB_VERSION); } catch { memoryMode = true; return resolve(null); }
     req.onupgradeneeded = (e) => {
       const db = req.result;
       for (let v = e.oldVersion + 1; v <= (e.newVersion || DB_VERSION); v++) MIGRATIONS[v]?.(db, req.transaction);
@@ -78,3 +82,31 @@ export async function clearStore(store) {
   await done(tx);
 }
 export const stamp = (rec) => ({ schemaVersion: SCHEMA_VERSION, ...rec });
+
+/** Read every store from a named database without creating it (used to move pre-account data into a new account). */
+export async function readAllFrom(name) {
+  if (!('indexedDB' in globalThis)) return null;
+  return new Promise((resolve) => {
+    let existed = true; let req;
+    try { req = indexedDB.open(name); } catch { return resolve(null); }
+    req.onupgradeneeded = () => { existed = false; req.transaction.abort(); };
+    req.onerror = () => resolve(null);
+    req.onsuccess = async () => {
+      const d = req.result; const out = {};
+      try {
+        for (const n of STORE_NAMES) {
+          if (!d.objectStoreNames.contains(n)) { out[n] = []; continue; }
+          out[n] = await wrap(d.transaction(n).objectStore(n).getAll());
+        }
+      } catch { d.close(); return resolve(null); }
+      d.close(); resolve(existed ? out : null);
+    };
+  });
+}
+export function deleteDatabase(name) {
+  return new Promise((resolve) => {
+    if (!('indexedDB' in globalThis)) return resolve();
+    if (name === dbName) { dbPromise?.then((d) => d?.close()); dbPromise = null; }
+    const r = indexedDB.deleteDatabase(name); r.onsuccess = r.onerror = r.onblocked = () => resolve();
+  });
+}

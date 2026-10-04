@@ -1,1 +1,13 @@
-{"name":"lifeos","private":true,"type":"module","description":"LifeOS V1 static PWA - no build step"}
+{
+  "name": "lifeos",
+  "private": true,
+  "type": "module",
+  "description": "LifeOS V1 static PWA - no build step",
+  "version": "1.0.0",
+  "dependencies": {
+    "@vercel/blob": "^2.8.0"
+  },
+  "scripts": {
+    "dev": "LIFEOS_DEV=1 node tools/dev-server.js"
+  }
+}

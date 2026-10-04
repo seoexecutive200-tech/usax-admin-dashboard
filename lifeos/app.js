@@ -13,10 +13,32 @@ import insights from './js/screens/insights.js';
 import you from './js/screens/you.js';
 import readiness from './js/screens/readiness.js';
 import { showOnboarding } from './js/screens/onboarding.js';
-import { isPersistent } from './js/db.js';
+import { isPersistent, setDbName, readAllFrom, DB_NAME } from './js/db.js';
+import { detect, dbNameFor } from './js/account.js';
+import { startSync, onSyncChange, sync } from './js/sync.js';
+import { showAuth } from './js/screens/auth.js';
 
 async function boot() {
+  // 1. Who is using the app? (signed in / needs to sign in / local-only because the host has no accounts)
+  const who = await detect();
+  let user = null; let isNew = false; let regName = ''; let legacy = null;
+  if (who.state === 'anon') { document.getElementById('boot')?.remove(); const r = await showAuth(); user = r.user; isNew = r.isNew; regName = r.name; }
+  else if (who.state === 'user') user = who.user;
+  if (user) {
+    if (isNew) legacy = await readAllFrom(DB_NAME); // data created before accounts existed on this device
+    setDbName(dbNameFor(user)); // every account gets its own local database
+  }
   await store.init();
+  if (isNew) {
+    const hasLegacy = legacy && ['logs', 'events', 'tasks', 'goals', 'memories'].some((n) => (legacy[n] || []).length) && legacy.profiles?.some((p) => p.onboarded);
+    if (hasLegacy) { await store.replaceAll(legacy); setTimeout(() => toast('Your existing data on this device was added to your new account.', { duration: 6000 }), 800); }
+    if (regName && !store.profile().name) await store.setProfile({ name: regName });
+  }
+  if (user) {
+    window.__account = user;
+    await startSync(user.id); // initial pull happens before onboarding so returning users keep their data (offline: resolves quickly)
+    onSyncChange(() => { if (sync.status === 'auth') toast('Your session expired — please log in again.', { tone: 'warn', duration: 8000 }); if (document.body.dataset.screen === 'you') refresh(); });
+  }
   applyTheme(); applyMotion();
   matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', applyMotion);
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', applyTheme);
@@ -54,5 +76,8 @@ async function boot() {
   document.getElementById('boot')?.remove();
 }
 boot().catch((e) => {
-  const b = document.getElementById('boot'); if (b) b.innerHTML = `<p>LifeOS couldn’t start: ${String(e.message).replace(/</g, '&lt;')}</p>`;
+  console.error('LifeOS failed to start:', e?.message);
+  let b = document.getElementById('boot');
+  if (!b) { b = document.createElement('div'); b.id = 'boot'; document.body.appendChild(b); }
+  b.innerHTML = `<p>LifeOS couldn’t start: ${String(e?.message).replace(/</g, '&lt;')}</p><button class="btn btn-primary" onclick="location.reload()">Reload</button>`;
 });
