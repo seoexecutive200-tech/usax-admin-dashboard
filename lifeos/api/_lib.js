@@ -10,7 +10,8 @@ const SESSION_DAYS = 30;
 const isDev = () => process.env.LIFEOS_DEV === '1';
 
 // ---------- storage: private Vercel Blob in production, filesystem for local dev ----------
-const useBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN && !isDev();
+// Older stores inject BLOB_READ_WRITE_TOKEN; newer ones inject BLOB_STORE_ID and the SDK authenticates with the function's OIDC token.
+const useBlob = () => !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) && !isDev();
 export const storageConfigured = () => useBlob() || isDev();
 
 async function blobSdk() { return import('@vercel/blob'); }
