@@ -1,6 +1,6 @@
 import { store } from '../store.js';
 import * as A from '../analytics.js';
-import { h, icon, spark, bar, toast, openSheet, seg, bindSeg, segVal, field } from '../ui.js';
+import { h, icon, spark, bar, toast, openSheet, seg, bindSeg, segVal, field, logo } from '../ui.js';
 import { dayKey, addDays, round, isNum, fmtDate, parseKey, weekKey, download, nowISO } from '../util.js';
 import { aiReady, askJSON, describeError } from '../groq.js';
 import { generateDaily, generateWeekly, buildWeeklyLocal, buildDailyLocal, reportToMarkdown } from '../reports.js';
@@ -39,7 +39,7 @@ export default {
     const exps = [...store.all('experiments')].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const n = A.totalDaysWithData(); const fl = A.futureLoad(7); const heavy = fl.filter((d) => ['heavy', 'peak'].includes(d.level)).length;
     return h`<div class="screen insights">
-      <header class="top"><div class="logo">Life<b>OS</b></div><div class="row gap"><button class="icon-btn" data-act="export" aria-label="Export weekly report">${icon('download', 22)}</button></div></header>
+      <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="export" aria-label="Export weekly report">${icon('download', 22)}</button></div></header>
       <div class="hero"><h1>Insights</h1><p class="muted">${fmtDate(addDays(new Date(), -(days - 1)), { day: 'numeric', month: 'short' })} – ${fmtDate(new Date(), { day: 'numeric', month: 'short' })}</p></div>
       <div class="seg wide" role="radiogroup" aria-label="Date range">${[7, 14, 30].map((d) => h`<button class="seg-btn ${d === days ? 'on' : ''}" role="radio" aria-checked="${d === days}" data-act="range" data-d="${d}">${d} days</button>`)}</div>
       <section class="card story"><div class="row between"><span class="eyebrow">This week’s story</span><span class="pill">${wk.source === 'ai' ? 'AI-written' : 'Built locally'} · ${Math.round((wk.confidence || 0) * 100)}% conf.</span></div>

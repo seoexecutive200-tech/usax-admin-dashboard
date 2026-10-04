@@ -1,7 +1,7 @@
 import { store } from '../store.js';
 import * as A from '../analytics.js';
 import * as adv from '../advisor.js';
-import { h, raw, icon, ring, pct, EVENT_ICON, EVENT_COLOR, toast, openSheet } from '../ui.js';
+import { h, raw, icon, ring, pct, EVENT_ICON, EVENT_COLOR, toast, openSheet, logo } from '../ui.js';
 import { greeting, fmtDate, fmtTime, fmtDur, dayKey, addDays, startOfDay, hoursUntil, partOfDay, round, isNum } from '../util.js';
 import { aiReady, hasKey } from '../groq.js';
 import { navigate } from '../router.js';
@@ -59,7 +59,7 @@ export default {
     const minimal = s.minimalDay === dayKey();
     const rc = cap.overall >= 0.7 ? 'var(--green)' : cap.overall >= 0.5 ? 'var(--blue)' : 'var(--amber)';
     return h`<div class="screen today">
-      <header class="top"><div class="logo">Life<b>OS</b></div><div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn has-dot ${banners.length ? 'on' : ''}" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
+      <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn has-dot ${banners.length ? 'on' : ''}" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
       <div class="hero"><h1>${greeting(now)}${prof.name ? `, ${prof.name}` : ''}</h1><p class="muted">${fmtDate(now)}</p></div>
       ${banners.slice(0, 2).map((b) => h`<div class="banner"><span>${icon('clock', 18)} ${b.text}</span><span class="row gap"><button class="btn btn-sm" data-act="banner-open" data-e="${b.eventId}">Open</button><button class="icon-btn" data-act="banner-x" data-b="${b.id}" aria-label="Dismiss">${icon('x', 16)}</button></span></div>`)}
       ${gap >= 3 && s.gapAck !== dayKey() ? h`<div class="card slim"><div class="eyebrow">Welcome back</div><p>It’s been ${gap} days. No catching up needed — just a quick recalibration.</p><button class="btn btn-sm btn-primary" data-act="gap" data-d="${gap}">Recalibrate</button></div>` : ''}

@@ -11,6 +11,8 @@ const flat = (v) => (v instanceof Raw ? v.s : Array.isArray(v) ? v.map(flat).joi
 export const h = (strings, ...vals) => raw(strings.reduce((out, s, i) => out + s + (i < vals.length ? flat(vals[i]) : ''), ''));
 export const html = (x) => (x instanceof Raw ? x.s : esc(x));
 
+/** Brand lockup. The glowing wordmark is made for dark backgrounds; light theme falls back to planet + live text. */
+export const logo = (big = false) => raw(`<div class="logo ${big ? 'big' : ''}" role="img" aria-label="LifeOS"><img class="logo-full" src="assets/logo.webp" alt="" decoding="async"><span class="logo-lite"><img src="assets/planet.webp" alt="" decoding="async"><span>Life<b>OS</b></span></span></div>`);
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 

@@ -258,3 +258,18 @@ html[data-motion="reduced"] .sheet-wrap .sheet { transform: translateY(100%); } 
 .r-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .r-row .seg { flex: none; }
 .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; } .day-chip { min-height: 44px; border-radius: 12px; border: 1px solid var(--line2); background: var(--surface2); color: var(--muted); font-weight: 650; font-size: 13px; padding: 0; } .day-chip.on { background: var(--blue); border-color: transparent; color: #fff; }
 .check .input { width: auto; min-height: 40px; padding: 6px 10px; flex: none; }
+
+/* brand */
+.logo { display: flex; align-items: center; min-height: 44px; } .logo-full { height: 44px; width: auto; display: block; margin-left: -4px; filter: drop-shadow(0 0 10px rgba(80, 120, 255, .25)); }
+.logo-lite { display: none; align-items: center; gap: 8px; font-size: 26px; font-weight: 700; letter-spacing: -.03em; } .logo-lite img { width: 34px; height: 34px; } .logo-lite b { color: var(--blue); }
+:root[data-theme="light"] .logo-full { display: none; } :root[data-theme="light"] .logo-lite { display: flex; }
+.logo.big { justify-content: flex-start; } .logo.big .logo-full { height: 84px; margin-left: -6px; } .logo.big .logo-lite { font-size: 40px; } .logo.big .logo-lite img { width: 64px; height: 64px; }
+.boot-planet { width: 96px; height: 96px; margin: 0 auto; animation: none; }
+
+/* light theme: replace the dark-tinted card gradients */
+:root[data-theme="light"] .glance, :root[data-theme="light"] .load, :root[data-theme="light"] .routine.active { background: linear-gradient(160deg, #ffffff, #eef3ff); border-color: rgba(59, 130, 246, .25); }
+:root[data-theme="light"] .advisor { background: linear-gradient(135deg, #f0ecff, #ffffff 75%); border-color: rgba(124, 92, 252, .28); } :root[data-theme="light"] .advisor.calm { background: linear-gradient(135deg, #eaf1ff, #ffffff 75%); border-color: rgba(59, 130, 246, .25); }
+:root[data-theme="light"] .advisor.urgent { background: linear-gradient(135deg, #ffecec, #ffffff 75%); }
+:root[data-theme="light"] .card { background: var(--surface); } :root[data-theme="light"] .tile { background: var(--surface2); }
+:root[data-theme="light"] .toast { background: #1f2733; } :root[data-theme="light"] .sheet-backdrop { background: rgba(15, 23, 42, .35); }
+:root[data-theme="light"] body::before { opacity: 1; background: radial-gradient(80% 90% at 85% 40%, rgba(245, 184, 75, .16), transparent 60%), radial-gradient(90% 80% at 10% 0%, rgba(124, 92, 252, .14), transparent 62%), linear-gradient(180deg, #e3ebff 0%, var(--bg) 100%); }

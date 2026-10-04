@@ -1,5 +1,5 @@
 // Log in / create account. Shown before the app when the server has accounts enabled and nobody is signed in.
-import { h, html, icon } from '../ui.js';
+import { h, html, icon, logo } from '../ui.js';
 import { login, register } from '../account.js';
 
 export function showAuth() {
@@ -8,7 +8,7 @@ export function showAuth() {
     let mode = 'login'; let busy = false; let error = ''; let show = false; let vals = { name: '', email: '', password: '' };
     const draw = () => {
       const reg = mode === 'register';
-      el.innerHTML = html(h`<div class="ob-card"><div class="ob-orb"></div><h1>Life<b>OS</b></h1>
+      el.innerHTML = html(h`<div class="ob-card">${logo(true)}
         <p class="lead">${reg ? 'Create your account to keep your data safe and use it on any device.' : 'Welcome back. Log in to pick up where you left off.'}</p>
         <div class="seg wide" role="tablist" aria-label="Account"><button class="seg-btn ${reg ? '' : 'on'}" role="tab" aria-selected="${!reg}" data-au="login">Log in</button><button class="seg-btn ${reg ? 'on' : ''}" role="tab" aria-selected="${reg}" data-au="register">Create account</button></div>
         <form id="au-form" class="stack" novalidate>

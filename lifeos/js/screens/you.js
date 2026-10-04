@@ -2,7 +2,7 @@ import { store } from '../store.js';
 import * as A from '../analytics.js';
 import * as adv from '../advisor.js';
 import * as G from '../groq.js';
-import { h, icon, toast, openSheet, confirmSheet, seg, bindSeg, segVal, field, applyTheme, applyMotion, bar, pct, slider, bindSliders } from '../ui.js';
+import { h, icon, toast, openSheet, confirmSheet, seg, bindSeg, segVal, field, applyTheme, applyMotion, bar, pct, slider, bindSliders, logo } from '../ui.js';
 import { fmtRelative, fmtDate, round, isNum, dayKey, nowISO, uid } from '../util.js';
 import { sourceLabel, addMemory, correctMemory, markWrong, setPrivate, setUseForAdvice, togglePin, forget } from '../memory.js';
 import { exportData, importData } from '../export-import.js';
@@ -45,7 +45,7 @@ export default {
     const f = fin(); const ready = G.aiReady(); const hasKey = G.hasKey();
     const pri = [...p.priorities].sort((a, b) => b.weight - a.weight);
     return h`<div class="screen you">
-      <header class="top"><div class="logo">Life<b>OS</b></div><span></span></header><div class="hero"><h1>You</h1><p class="muted">Your profile, priorities, memory and settings. Everything stays on this device.</p></div>
+      <header class="top">${logo()}<span></span></header><div class="hero"><h1>You</h1><p class="muted">Your profile, priorities, memory and settings. Everything stays on this device.</p></div>
       ${accountCard()}
       <section class="card"><div class="eyebrow">Profile</div>${field('Name', h`<input class="input" data-input="name" value="${p.name}" maxlength="40" placeholder="What should I call you?">`)}
         <div class="field"><span class="field-label">Appearance</span>${seg('theme', [['dark', 'Dark'], ['light', 'Light'], ['system', 'System']], s.theme)}</div>

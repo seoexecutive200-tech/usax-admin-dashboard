@@ -9,7 +9,6 @@ python3 -m http.server 8080      # or any static host
 # open http://localhost:8080  (service worker needs http://localhost or https)
 ```
 First launch: welcome → optional Groq key (Session only / Remember on this device / Skip) → empty or demo data.
-Regenerate icons: `node tools/make-icons.js`.
 
 ## Layout
 `index.html`, `styles.css`, `app.js`, `manifest.json`, `service-worker.js`, `js/` (db, store, router, analytics, groq, prompts, schemas, ai-context, advisor, capture-parser, calendar, reports, memory, actions, export-import, ui, sheets, seed) and `js/screens/` (today, plan, capture, insights, you, readiness, onboarding).

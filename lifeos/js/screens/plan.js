@@ -1,6 +1,6 @@
 import { store } from '../store.js';
 import * as A from '../analytics.js';
-import { h, icon, pct, EVENT_ICON, EVENT_COLOR, levelColor, toast, confirmSheet } from '../ui.js';
+import { h, icon, pct, EVENT_ICON, EVENT_COLOR, levelColor, toast, confirmSheet, logo } from '../ui.js';
 import { fmtDate, fmtTime, fmtDur, dayKey, parseKey, addDays, startOfWeek, startOfDay, round } from '../util.js';
 import { navigate } from '../router.js';
 import { eventFormSheet, eventDetailSheet, taskFormSheet, commit, searchSheet, notificationsSheet } from '../sheets.js';
@@ -30,7 +30,7 @@ export default {
     const isToday = sel === dayKey();
     const maxV = Math.max(0.5, ...fl.map((d) => d.value));
     return h`<div class="screen plan">
-      <header class="top"><div class="logo">Life<b>OS</b></div><div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
+      <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
       <div class="hero"><h1>Plan</h1><p class="muted">${fmtDate(now)}</p></div>
       <div class="week" role="tablist" aria-label="Week">
         <button class="icon-btn" data-act="wk" data-d="-7" aria-label="Previous week">${icon('chevronL', 18)}</button>
