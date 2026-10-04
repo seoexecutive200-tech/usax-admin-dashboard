@@ -17,6 +17,7 @@ import { isPersistent, setDbName, readAllFrom, DB_NAME } from './js/db.js';
 import { detect, dbNameFor } from './js/account.js';
 import { startSync, onSyncChange, sync } from './js/sync.js';
 import { showAuth } from './js/screens/auth.js';
+import { startRoutineLoop, prune as pruneRoutines } from './js/routines.js';
 
 async function boot() {
   // 1. Who is using the app? (signed in / needs to sign in / local-only because the host has no accounts)
@@ -64,7 +65,8 @@ async function boot() {
 
   adv.onAdvisorChange(() => refresh());
   adv.startReminderLoop((b) => { const changed = JSON.stringify(b.map((x) => x.id)) !== JSON.stringify(window.__bn || []); window.__bn = b.map((x) => x.id); setBanners(b); if (changed) refresh(); });
-  syncPatterns();
+  syncPatterns(); pruneRoutines();
+  startRoutineLoop(() => { if (['today', 'plan'].includes(document.body.dataset.screen)) refresh(); }); // work-mode guidance: water, breaks, lunch
   adv.evaluate('app_open');
   window.addEventListener('online', () => { toast('Back online'); refresh(); });
   window.addEventListener('offline', () => { toast('Offline — everything local still works'); refresh(); });

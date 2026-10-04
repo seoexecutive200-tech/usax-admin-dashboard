@@ -41,7 +41,7 @@ export default {
   id: 'you',
   render() {
     const s = store.settings(); const p = store.profile(); const mems = store.all('memories').filter((m) => m.kind !== 'decision' && !m.forgotten).sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt.localeCompare(a.createdAt));
-    const goals = store.all('goals'); const acts = store.all('activities'); const decisions = store.all('memories').filter((m) => m.kind === 'decision');
+    const goals = store.all('goals'); const acts = store.all('activities').filter((a) => !a.kind); const decisions = store.all('memories').filter((m) => m.kind === 'decision');
     const f = fin(); const ready = G.aiReady(); const hasKey = G.hasKey();
     const pri = [...p.priorities].sort((a, b) => b.weight - a.weight);
     return h`<div class="screen you">

@@ -32,3 +32,14 @@ export const adapters = {
     },
   },
 };
+
+const ICS_DAY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+/** Weekly recurring calendar entry for a routine (floating local time). */
+export function exportRoutineICS(r) {
+  const pad = (n) => String(n).padStart(2, '0');
+  const d = new Date(); for (let i = 0; i < 8 && !(r.days || []).includes(d.getDay()); i++) d.setDate(d.getDate() + 1);
+  const stamp = (hhmm) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${hhmm.replace(':', '')}00`;
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//LifeOS//V1//EN', 'BEGIN:VEVENT', `UID:${r.id}@lifeos.local`, `DTSTAMP:${stampUTC(new Date())}`,
+    `DTSTART:${stamp(r.start)}`, `DTEND:${stamp(r.end)}`, `RRULE:FREQ=WEEKLY;BYDAY=${(r.days || []).map((x) => ICS_DAY[x]).join(',')}`, fold(`SUMMARY:${esc(r.name)}`), 'END:VEVENT', 'END:VCALENDAR'];
+  download(`${r.name.replace(/[^\w-]+/g, '_').slice(0, 40) || 'routine'}.ics`, `${lines.join('\r\n')}\r\n`, 'text/calendar');
+}

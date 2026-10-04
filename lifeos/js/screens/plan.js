@@ -5,6 +5,7 @@ import { fmtDate, fmtTime, fmtDur, dayKey, parseKey, addDays, startOfWeek, start
 import { navigate } from '../router.js';
 import { eventFormSheet, eventDetailSheet, taskFormSheet, commit, searchSheet, notificationsSheet } from '../sheets.js';
 import { exportAllICS } from '../calendar.js';
+import { routineStrip, routineActions } from '../routine-ui.js';
 
 let sel = dayKey();
 
@@ -35,6 +36,7 @@ export default {
         <button class="icon-btn" data-act="wk" data-d="-7" aria-label="Previous week">${icon('chevronL', 18)}</button>
         <div class="week-days">${week.map((d) => { const k = dayKey(d); const l = A.loadLevel(A.loadForDay(k)); const has = A.eventsOnDay(k).length; return h`<button class="day ${k === sel ? 'sel' : ''} ${k === dayKey() ? 'today' : ''}" role="tab" aria-selected="${k === sel}" data-act="day" data-k="${k}"><small>${fmtDate(d, { weekday: 'short' })}</small><b>${d.getDate()}</b><i class="dot" style="background:${has ? levelColor(l) : 'var(--line)'}"></i></button>`; })}</div>
         <button class="icon-btn" data-act="wk" data-d="7" aria-label="Next week">${icon('chevron', 18)}</button></div>
+      ${routineStrip(sel)}
       <section class="card load"><div class="load-bars" aria-label="Future load, next 7 days">${fl.map((d) => h`<button class="lb" data-act="day" data-k="${d.key}" aria-label="${fmtDate(d.date, { weekday: 'long' })}: ${d.level} load"><i style="height:${Math.max(8, (d.value / maxV) * 100)}%;background:${levelColor(d.level)}"></i><small>${fmtDate(d.date, { weekday: 'short' })}</small></button>`)}</div>
         <div class="load-adv"><div class="row gap center"><span class="orb sm"></span><b>Future Load</b></div><p class="small">${loadAdvice(fl)}</p></div></section>
       <section><div class="sec-h"><h2>${isToday ? 'Today' : fmtDate(parseKey(sel), { weekday: 'long', day: 'numeric', month: 'short' })}</h2><button class="btn btn-sm btn-outline" data-act="add">${icon('plus', 16)} Add event</button></div>
@@ -49,6 +51,7 @@ export default {
       <div class="row center"><button class="link" data-act="ics">${icon('download', 14)} Export schedule (.ics)</button></div></div>`;
   },
   actions: {
+    ...routineActions,
     search: () => searchSheet(), bell: () => notificationsSheet(),
     day: (el) => { sel = el.dataset.k; navigate('#/plan'); },
     wk: (el) => { sel = dayKey(addDays(parseKey(sel), Number(el.dataset.d))); navigate('#/plan'); },

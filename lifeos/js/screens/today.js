@@ -7,6 +7,7 @@ import { aiReady, hasKey } from '../groq.js';
 import { navigate } from '../router.js';
 import { whySheet, askSheet, eventDetailSheet, searchSheet, notificationsSheet, capacitySheet, gapSheet, commit, proposeAction, quickLogSheet } from '../sheets.js';
 import { execute } from '../actions.js';
+import { routineCards, routineActions } from '../routine-ui.js';
 
 let banners = [];
 export const setBanners = (b) => { banners = b; };
@@ -54,7 +55,7 @@ export default {
   render() {
     const prof = store.profile(); const now = new Date(); const cap = A.capacity(now); const item = adv.current(now);
     const nexts = nextItems(); const ne = A.nextImportantEvent(now); const r = ne ? A.readiness(ne, now) : null;
-    const s = store.settings(); const gap = A.gapDays(now); const habits = store.all('activities').filter((a) => a.enabled !== false);
+    const s = store.settings(); const gap = A.gapDays(now); const habits = store.all('activities').filter((a) => a.enabled !== false && !a.kind);
     const minimal = s.minimalDay === dayKey();
     const rc = cap.overall >= 0.7 ? 'var(--green)' : cap.overall >= 0.5 ? 'var(--blue)' : 'var(--amber)';
     return h`<div class="screen today">
@@ -71,6 +72,7 @@ export default {
         </div>
         ${cap.estimated.energy ? h`<p class="tiny muted">Energy is estimated from your baseline until you log it.</p>` : ''}
       </section>
+      ${routineCards(now)}
       ${minimal ? h`<div class="card slim"><div class="eyebrow">Essentials-only day is on</div><p>Showing only high-importance and time-fixed items. Nothing was deleted.</p><button class="btn btn-sm" data-act="minimal-off">Back to full plan</button></div>` : ''}
       ${advisorCard(item)}
       ${focusCard(cap)}
@@ -85,6 +87,7 @@ export default {
       </section></div>`;
   },
   actions: {
+    ...routineActions,
     search: () => searchSheet(), bell: () => notificationsSheet(), capacity: () => capacitySheet(),
     ask: () => askSheet(), setupai: () => { navigate('#/you'); setTimeout(() => document.getElementById('ai-api')?.scrollIntoView({ behavior: 'smooth' }), 350); },
     goplan: () => navigate('#/plan'), event: (el) => eventDetailSheet(el.dataset.id), ready: (el) => navigate(`#/readiness/${el.dataset.id}`),

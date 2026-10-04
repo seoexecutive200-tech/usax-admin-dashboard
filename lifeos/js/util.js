@@ -89,7 +89,7 @@ export function download(filename, text, type = 'application/json') {
 }
 
 export function safeJSON(text, fallback = null) {
-  try { return JSON.parse(text); } catch { return fallback; }
+  try { return JSON.parse(text) ?? fallback; } catch { return fallback; } // JSON.parse(null) is null, so a missing value must still yield the fallback
 }
 export const lsGet = (k, fb = null) => { try { const v = localStorage.getItem(k); return v === null ? fb : v; } catch { return fb; } };
 export const lsSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };

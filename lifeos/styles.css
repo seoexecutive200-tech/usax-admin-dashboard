@@ -249,3 +249,12 @@ html[data-motion="reduced"] .sheet-wrap .sheet { transform: translateY(100%); } 
 .pw { position: relative; display: block; } .pw .input { padding-right: 52px; } .pw-t { position: absolute; right: 2px; top: 2px; color: var(--muted); }
 #auth .form-error { min-height: 20px; } #auth .form-error:empty { display: block; }
 .acct { gap: 8px; } .acct .row { align-items: center; } .acct-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none; } .acct-dot.ok { background: var(--green); } .acct-dot.warn { background: var(--amber); } .acct-dot.bad { background: var(--red); }
+
+/* routines */
+.routine.active { border-color: rgba(59, 130, 246, .4); background: linear-gradient(150deg, rgba(30, 48, 90, .55), var(--surface) 70%); }
+.nudge { display: flex; gap: 12px; align-items: flex-start; background: var(--surface2); border: 1px solid var(--line2); border-radius: 16px; padding: 12px; animation: reveal .3s var(--ease) both; }
+.nudge.water .t-ic { color: #4cc3ff; background: rgba(76, 195, 255, .12); } .nudge.break .t-ic { color: var(--green); background: rgba(52, 211, 153, .12); } .nudge.lunch .t-ic { color: var(--amber); background: rgba(245, 184, 75, .12); } .nudge.end .t-ic, .nudge.wrap .t-ic { color: var(--violet); background: var(--violet-soft); }
+.nudge .row { margin-top: 8px; }
+.r-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .r-row .seg { flex: none; }
+.days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; } .day-chip { min-height: 44px; border-radius: 12px; border: 1px solid var(--line2); background: var(--surface2); color: var(--muted); font-weight: 650; font-size: 13px; padding: 0; } .day-chip.on { background: var(--blue); border-color: transparent; color: #fff; }
+.check .input { width: auto; min-height: 40px; padding: 6px 10px; flex: none; }
