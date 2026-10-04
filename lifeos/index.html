@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-motion="full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LifeOS</title>
+  <meta name="description" content="LifeOS — a local-first personal advisor for health, planning, memory and decisions.">
+  <meta name="theme-color" content="#0D1118">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.groq.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LifeOS">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="boot" role="status"><div class="boot-orb"></div><p>LifeOS</p></div>
+  <main id="view" tabindex="-1" aria-live="polite"></main>
+  <nav id="nav" class="nav" aria-label="Primary"></nav>
+  <div id="onboarding" class="onboarding" hidden></div>
+  <div id="sheet-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+  <noscript><p style="padding:24px;color:#fff">LifeOS needs JavaScript to run.</p></noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
