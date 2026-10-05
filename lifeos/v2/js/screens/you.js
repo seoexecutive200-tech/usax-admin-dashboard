@@ -153,7 +153,7 @@ export default {
     'v-check': async () => { toast('Checking…'); const r = await checkNow(); toast(r === 'ready' ? 'An update is ready' : r === 'current' ? 'You’re up to date' : 'Couldn’t check right now', { tone: r === 'error' ? 'warn' : '' }); rerender(); },
     'push-on': async () => { pushBusy = true; rerender(); try { await P.enable(); toast('Background reminders are on'); } catch (e) { toast(e.message || 'Couldn’t turn on', { tone: 'warn', duration: 7000 }); } pushBusy = false; rerender(); },
     'push-off': async () => { pushBusy = true; rerender(); await P.disable(); pushBusy = false; toast('Background reminders are off'); rerender(); },
-    'push-test': async () => { try { await P.sendTest(); toast('Test sent — it should arrive in a few seconds'); } catch (e) { toast(e.message || 'Test failed', { tone: 'warn' }); } },
+    'push-test': async () => { try { const r = await P.sendTest(); toast(`Test sent to ${r.delivered} device${r.delivered === 1 ? '' : 's'} — it should arrive in a few seconds`); } catch (e) { toast(e.message || 'Test failed', { tone: 'warn' }); } },
     'v-update': () => showUpdate(), 'v-new': () => tourSheet(),
     'v-back': async () => { if (await confirmSheet({ title: 'Switch back to LifeOS 1?', message: 'Your original LifeOS and its data are untouched. Anything you add in LifeOS 2 (trackers, rules) will not be there. You can return here any time.', confirm: 'Switch back' })) switchToV1(); },
     // memory controls

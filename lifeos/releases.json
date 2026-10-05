@@ -1,11 +1,17 @@
 {
   "latest": {
-    "version": "2.2.0",
+    "version": "2.2.1",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.2",
-    "summary": "Goals you can reach — progress, pace and suggestions for “get to 80 kg”-style targets.",
+    "title": "LifeOS 2.2.1",
+    "summary": "A small update: the notification test now reports how many devices it reached.",
     "notes": [
+      {
+        "since": "2.2.1",
+        "icon": "bell",
+        "title": "Clearer notification test",
+        "text": "In You → Background reminders, “Send a test” now tells you how many of your devices it was sent to."
+      },
       {
         "since": "2.2.0",
         "icon": "target",
