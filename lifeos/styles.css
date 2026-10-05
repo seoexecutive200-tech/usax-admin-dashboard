@@ -273,3 +273,6 @@ html[data-motion="reduced"] .sheet-wrap .sheet { transform: translateY(100%); } 
 :root[data-theme="light"] .card { background: var(--surface); } :root[data-theme="light"] .tile { background: var(--surface2); }
 :root[data-theme="light"] .toast { background: #1f2733; } :root[data-theme="light"] .sheet-backdrop { background: rgba(15, 23, 42, .35); }
 :root[data-theme="light"] body::before { opacity: 1; background: radial-gradient(80% 90% at 85% 40%, rgba(245, 184, 75, .16), transparent 60%), radial-gradient(90% 80% at 10% 0%, rgba(124, 92, 252, .14), transparent 62%), linear-gradient(180deg, #e3ebff 0%, var(--bg) 100%); }
+
+/* background refreshes swap content without replaying intro animations */
+#view.silent, #view.silent *, #view.silent *::before, #view.silent *::after { animation: none !important; }

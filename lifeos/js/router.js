@@ -4,7 +4,7 @@ import { store } from './store.js';
 
 const routes = new Map(); const globalActions = {};
 let current = null; let currentParams = {}; let currentName = ''; const scrollPos = {};
-let viewEl; let navEl;
+let viewEl; let navEl; let lastHTML = '';
 export const history_ = [];
 
 export function register(name, screen) { routes.set(name, screen); }
@@ -25,7 +25,14 @@ export function render(animate = false) {
   const changed = name !== currentName || params.id !== currentParams.id;
   current = screen; currentParams = params;
   const scroll = changed ? (scrollPos[name] ?? 0) : window.scrollY;
-  viewEl.innerHTML = html(screen.render(params));
+  const out = html(screen.render(params));
+  // Background refresh (sync, reminders, returning to the app): do nothing if the screen would look identical,
+  // otherwise swap the content in silently — no intro animations replaying, no scroll jump.
+  const silent = !animate && !changed;
+  if (silent && out === lastHTML) return;
+  lastHTML = out;
+  viewEl.classList.toggle('silent', silent);
+  viewEl.innerHTML = out;
   viewEl.classList.toggle('enter', animate || changed);
   if (animate || changed) { viewEl.style.animation = 'none'; void viewEl.offsetWidth; viewEl.style.animation = ''; }
   screen.mount?.(viewEl, params);
@@ -33,7 +40,7 @@ export function render(animate = false) {
   $$('.nav-btn', navEl).forEach((b) => { const on = b.dataset.route === (name === 'readiness' ? 'today' : name); b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
   navEl.classList.toggle('hidden', name === 'capture');
   document.body.dataset.screen = name;
-  window.scrollTo(0, changed && !scrollPos[name] ? 0 : scroll);
+  window.scrollTo({ top: changed && !scrollPos[name] ? 0 : scroll, behavior: 'instant' });
   if (changed) { history_.push(name); if (history_.length > 30) history_.shift(); viewEl.focus({ preventScroll: true }); }
 }
 
