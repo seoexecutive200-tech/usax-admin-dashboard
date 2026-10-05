@@ -44,7 +44,7 @@ export default {
       <div class="seg wide" role="radiogroup" aria-label="Date range">${[7, 14, 30].map((d) => h`<button class="seg-btn ${d === days ? 'on' : ''}" role="radio" aria-checked="${d === days}" data-act="range" data-d="${d}">${d} days</button>`)}</div>
       <section class="card story"><div class="row between"><span class="eyebrow">This week’s story</span><span class="pill">${wk.source === 'ai' ? 'AI-written' : 'Built locally'} · ${Math.round((wk.confidence || 0) * 100)}% conf.</span></div>
         <p class="story-text">${wk.narrative}</p>
-        <div class="row gap wrap"><button class="btn btn-sm" data-act="weekly" ${busy === 'weekly' ? 'disabled' : ''}>${busy === 'weekly' ? 'Writing…' : aiReady() ? `${icon('sparkle', 14)} ${wk.source === 'ai' ? 'Rewrite with AI' : 'Write with AI'}` : `${icon('refresh', 14)} Refresh`}</button><button class="btn btn-sm" data-act="export">${icon('download', 14)} Export</button></div></section>
+        <div class="row gap wrap"><button class="btn btn-sm" data-act="weekly" ${busy === 'weekly' ? 'disabled' : ''}>${busy === 'weekly' ? 'Writing…' : aiReady() ? h`${icon('sparkle', 14)} ${wk.source === 'ai' ? 'Rewrite with AI' : 'Write with AI'}` : h`${icon('refresh', 14)} Refresh`}</button><button class="btn btn-sm" data-act="export">${icon('download', 14)} Export</button></div></section>
       <div class="grid2 cards">
         <div class="card mini good"><span class="eyebrow">Biggest improvement</span><p>${wk.biggestImprovement}</p></div>
         <div class="card mini press"><span class="eyebrow">Biggest pressure</span><p>${wk.biggestPressure}</p></div></div>

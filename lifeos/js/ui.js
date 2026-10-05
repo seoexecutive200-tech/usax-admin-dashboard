@@ -2,15 +2,29 @@
 import { store } from './store.js';
 import { clamp, isNum } from './util.js';
 
-// ---- safe templating: every interpolation is escaped unless wrapped in raw() ----
+// ---- safe templating: every interpolation is escaped unless it is a trusted template result ----
+// Trusted results (Raw) stringify to a marked span, so even when one is nested inside an ordinary `${...}` template
+// literal it is recognised later instead of being escaped into visible text. The marker contains a random per-load
+// nonce, so user- or AI-written text can never forge it.
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
-class Raw { constructor(s) { this.s = s; } toString() { return this.s; } }
+const NONCE = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, '0')).join('');
+const OPEN = `\u0001${NONCE}[`; const CLOSE = `]${NONCE}\u0002`;
+const MARKED = new RegExp(`${OPEN.replace(/[\[\]]/g, '\\$&')}([\\s\\S]*?)${CLOSE.replace(/[\[\]]/g, '\\$&')}`, 'g');
+class Raw { constructor(s) { this.s = s; } toString() { return OPEN + this.s + CLOSE; } }
 export const raw = (s) => new Raw(s);
-const flat = (v) => (v instanceof Raw ? v.s : Array.isArray(v) ? v.map(flat).join('') : v === false || v == null ? '' : esc(v));
+function text(str) { // escape plain text but keep marked trusted spans
+  if (!str.includes(OPEN)) return esc(str);
+  let out = ''; let last = 0; MARKED.lastIndex = 0; let m;
+  while ((m = MARKED.exec(str))) { out += esc(str.slice(last, m.index)) + m[1]; last = m.index + m[0].length; }
+  return out + esc(str.slice(last));
+}
+const flat = (v) => (v instanceof Raw ? v.s : Array.isArray(v) ? v.map(flat).join('') : v === false || v == null ? '' : text(String(v)));
 export const h = (strings, ...vals) => raw(strings.reduce((out, s, i) => out + s + (i < vals.length ? flat(vals[i]) : ''), ''));
 // Render a template result, a list of them, or plain text (escaped) to an HTML string.
 export const html = (x) => flat(x);
+/** For HTML assembled in a plain template literal: resolve any trusted spans embedded in it (no escaping). */
+export const unmark = (str) => { MARKED.lastIndex = 0; return String(str).replace(MARKED, '$1'); };
 
 /** Brand lockup. The glowing wordmark is made for dark backgrounds; light theme falls back to planet + live text. */
 export const logo = (big = false) => raw(`<div class="logo ${big ? 'big' : ''}" role="img" aria-label="LifeOS"><img class="logo-full" src="assets/logo.webp" alt="" decoding="async"><span class="logo-lite"><img src="assets/planet.webp" alt="" decoding="async"><span>Life<b>OS</b></span></span></div>`);
@@ -96,8 +110,8 @@ export function toast(message, { undo = null, duration = 4200, tone = '' } = {})
 let openCount = 0;
 export function openSheet({ title = '', body = '', onOpen = null, onClose = null, tall = false } = {}) {
   const root = $('#sheet-root'); const wrap = document.createElement('div'); wrap.className = 'sheet-wrap';
-  wrap.innerHTML = `<div class="sheet-backdrop"></div><section class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-grab"></div>
-    <header class="sheet-head"><h2>${esc(title)}</h2><button class="icon-btn" data-close aria-label="Close">${icon('x', 20)}</button></header><div class="sheet-body">${html(body)}</div></section>`;
+  wrap.innerHTML = unmark(`<div class="sheet-backdrop"></div><section class="sheet ${tall ? 'tall' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="sheet-grab"></div>
+    <header class="sheet-head"><h2>${esc(title)}</h2><button class="icon-btn" data-close aria-label="Close">${icon('x', 20)}</button></header><div class="sheet-body">${html(body)}</div></section>`);
   root.appendChild(wrap); openCount++; document.body.classList.add('sheet-open');
   const prevFocus = document.activeElement;
   requestAnimationFrame(() => wrap.classList.add('open'));
