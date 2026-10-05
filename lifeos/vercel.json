@@ -53,11 +53,5 @@
         }
       ]
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/push-tick",
-      "schedule": "*/5 * * * *"
-    }
   ]
 }
