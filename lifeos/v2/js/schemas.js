@@ -31,6 +31,7 @@ export const SCHEMAS = {
   }),
   rule: obj({ name: str, trackerId: str, kind: { type: 'string', enum: ['threshold', 'count', 'streak', 'missing'] }, field: str, op: { type: 'string', enum: ['>', '>=', '<', '<=', '=', ''] }, value: num, windowDays: num, count: num, byTime: str, message: str, problem: str }),
   route: obj({ entries: { type: 'array', items: obj({ trackerId: str, valuesJson: str, confidence: num, clarification: str }) } }),
+  routines: obj({ routines: { type: 'array', items: obj({ name: str, days: numArr, start: str, end: str, assume: { type: 'boolean' }, water: { type: 'boolean' }, waterEvery: num, breaks: { type: 'boolean' }, breakEvery: num, lunch: { type: 'boolean' }, lunchAt: str, eyes: { type: 'boolean' }, wrap: { type: 'boolean' }, reminders: { type: 'array', items: obj({ time: str, text: str }) } }) }, note: str }),
   coach: obj({ summary: str, suggestions: { type: 'array', items: obj({ title: str, detail: str }) }, watchOuts: strArr, questions: strArr }),
   series: obj({ x: str, y: str, lagDays: num, explanation: str }),
   advisor: obj({

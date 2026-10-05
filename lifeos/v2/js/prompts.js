@@ -101,3 +101,13 @@ Rules:
 4. Never diagnose, prescribe diets, medication or supplements, or give medical advice. If a health condition is involved, suggest checking with a qualified professional.
 5. watchOuts: 0-3 short cautions. questions: up to 2 short questions about things you cannot see (food, activity, sleep) that would help next time.
 6. summary: under 60 words, plain and encouraging, no emojis, no judgement.`;
+
+export const ROUTINE_DESIGNER = `You turn a person's description of their daily routines into structured routines. They may describe one or several.
+Rules:
+1. One routine per distinct activity or time window (e.g. "Office", "Gym", "Wind-down"). Name it in 1-3 words.
+2. days: numbers 0=Sunday..6=Saturday ("Mon-Sat" = 1,2,3,4,5,6; "weekdays" = 1-5; "every day" = 0-6). start and end: 24-hour HH:MM; end must be after start and on the same day.
+3. Guidance flags (water, breaks, lunch, eyes, wrap) are ON only if they asked for it or the routine is a long work/study block (4 hours or more); otherwise false. waterEvery/breakEvery are minutes (default 60 and 90). lunchAt is HH:MM or "".
+4. reminders: specific timed prompts they asked for ("remind me to stretch at 3:30pm"). Each time MUST be inside that routine's start-end window; if a reminder falls outside every routine they described, create a short routine around it (for example 30 minutes) instead.
+5. assume = true only if they said to assume they are working/attending unless told otherwise.
+6. Do not invent routines or times they did not mention. If a time is ambiguous (e.g. "10 to 6"), choose the sensible daytime reading and say so in note. note: one short sentence, or an empty string.
+7. No medical advice.`;

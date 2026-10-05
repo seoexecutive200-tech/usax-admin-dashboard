@@ -1,11 +1,29 @@
 {
   "latest": {
-    "version": "2.2.1",
+    "version": "2.3.0",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.2.1",
-    "summary": "A small update: the notification test now reports how many devices it reached.",
+    "title": "LifeOS 2.3",
+    "summary": "Make LifeOS yours: customize Today, describe routines in words, and choose your coaching tone.",
     "notes": [
+      {
+        "since": "2.3.0",
+        "icon": "home",
+        "title": "Make Today yours",
+        "text": "Choose which cards show on Today and put them in your order — routines, trackers, advisor, glance and more. Find it under Customize Today."
+      },
+      {
+        "since": "2.3.0",
+        "icon": "clock",
+        "title": "Describe your routines in words",
+        "text": "“Gym Mon, Wed, Fri 7–8am, wind-down weekdays 10pm with a reminder to put the phone away.” LifeOS builds the routines and reminders and you review them before saving."
+      },
+      {
+        "since": "2.3.0",
+        "icon": "smile",
+        "title": "Your coaching tone",
+        "text": "Pick Gentle, Direct or Minimal. Reminders, nudges and the AI’s wording follow your style — the facts and numbers never change."
+      },
       {
         "since": "2.2.1",
         "icon": "bell",

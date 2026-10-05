@@ -1,6 +1,7 @@
 // Groq OpenAI-compatible client. Own key: called directly from the browser by explicit user choice.
 // No own key: signed-in users can use hosted AI through the server's /api/ai proxy (daily limit, key never reaches the browser).
 // Key handling: never logged, never exported, never placed in error text.
+import { styleInstruction } from './tone.js';
 import { store } from './store.js';
 import { SCHEMAS, validate, withDefaults } from './schemas.js';
 import { lsGet, lsSet, lsDel, safeJSON, nowISO } from './util.js';
@@ -122,7 +123,7 @@ function parseJSONLoose(text) {
  */
 export async function askJSON({ system, user, schemaName, signal, timeoutMs = 30000 }) {
   const s = store.settings(); const model = s.modelId; const schema = SCHEMAS[schemaName];
-  const base = [{ role: 'system', content: system }, { role: 'user', content: typeof user === 'string' ? user : JSON.stringify(user) }];
+  const base = [{ role: 'system', content: system + styleInstruction() }, { role: 'user', content: typeof user === 'string' ? user : JSON.stringify(user) }];
   const strictFmt = { type: 'json_schema', json_schema: { name: schemaName, strict: true, schema } };
   const looseSys = { role: 'system', content: `Respond with ONE JSON object only, matching this JSON Schema (all fields required):\n${JSON.stringify(schema)}` };
 

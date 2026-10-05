@@ -1,5 +1,8 @@
 // Single source of truth for "what's new in LifeOS 2" (also mirrored into releases.json for the update card).
 export const WHATS_NEW = [
+  { since: '2.3.0', icon: 'home', title: 'Make Today yours', text: 'Choose which cards show on Today and put them in your order — routines, trackers, advisor, glance and more. Find it under Customize Today.' },
+  { since: '2.3.0', icon: 'clock', title: 'Describe your routines in words', text: '“Gym Mon, Wed, Fri 7–8am, wind-down weekdays 10pm with a reminder to put the phone away.” LifeOS builds the routines and reminders and you review them before saving.' },
+  { since: '2.3.0', icon: 'smile', title: 'Your coaching tone', text: 'Pick Gentle, Direct or Minimal. Reminders, nudges and the AI’s wording follow your style — the facts and numbers never change.' },
   { since: '2.2.1', icon: 'bell', title: 'Clearer notification test', text: 'In You → Background reminders, “Send a test” now tells you how many of your devices it was sent to.' },
   { since: '2.2.0', icon: 'target', title: 'Goals you can reach', text: 'Say “reduce my weight to 80 kg in 8 weeks” and LifeOS tracks progress from where you start, estimates your pace and finish date, and suggests next steps — from your own numbers, plus optional AI coaching.' },
   { since: '2.1.0', icon: 'bell', title: 'Reminders even when LifeOS is closed', text: 'Turn on background reminders in You and your water, break and lunch nudges and tracker reminders arrive as notifications while the app is closed. Quiet hours are respected; only reminder text is sent.' },

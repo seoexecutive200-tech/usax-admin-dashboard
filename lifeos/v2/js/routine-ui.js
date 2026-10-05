@@ -1,4 +1,5 @@
 // UI for daily routines: Today "work mode" card, Plan day-status strip, manage/edit sheets.
+import { describeRoutineSheet } from './routine-ai.js';
 import { store } from './store.js';
 import * as R from './routines.js';
 import { execute } from './actions.js';
@@ -80,7 +81,8 @@ export function manageSheet() {
       ${list.map((r) => h`<div class="card inset"><div class="row between gap"><div class="grow"><b>${r.name}</b><div class="small muted">${R.DAY_ORDER.filter((d) => r.days.includes(d)).map((d) => R.DAY_NAMES[d]).join(', ')} · ${R.fmtHM(r.start)}–${R.fmtHM(r.end)}${r.enabled === false ? ' · paused' : ''}</div></div></div>
         <div class="row gap wrap"><button class="btn btn-sm" data-e="${r.id}">${icon('edit', 14)} Edit</button><button class="btn btn-sm" data-t="${r.id}">${r.enabled === false ? 'Resume' : 'Pause'}</button><button class="btn btn-sm" data-i="${r.id}">${icon('download', 14)} .ics</button><button class="btn btn-sm btn-danger-ghost" data-x="${r.id}">${icon('trash', 14)}</button></div></div>`)}
       ${list.length ? '' : h`<button class="btn btn-primary btn-wide" data-tpl>Add “Office · Mon–Sat · 10:00–18:00”</button>`}
-      <button class="btn ${list.length ? 'btn-primary' : ''} btn-wide" data-new>${icon('plus', 16)} New routine</button>
+      <button class="btn btn-primary btn-wide" data-desc>${icon('sparkle', 16)} Describe it in words</button>
+      <button class="btn btn-wide" data-new>${icon('plus', 16)} New routine</button>
       <div class="card inset"><div class="strong">${icon('bell', 16)} Reminders</div><p class="small muted">Nudges appear on Today whenever you open LifeOS, and as notifications while it’s open or running in the background. For the most reliable alerts, add LifeOS to your Home Screen (iPhone: Share → Add to Home Screen). It can’t notify you when the app is fully closed.</p>
       <button class="btn btn-sm" data-notif>${store.settings().notifications && 'Notification' in window && Notification.permission === 'granted' ? 'Notifications are on' : 'Enable notifications'}</button></div></div>`);
     const el = s.el;
@@ -90,14 +92,15 @@ export function manageSheet() {
     el.querySelectorAll('[data-x]').forEach((b) => b.onclick = async () => { const r = store.get('activities', b.dataset.x); if (await confirmSheet({ title: 'Delete routine?', message: `“${r.name}” and its day marks will be removed.`, confirm: 'Delete', danger: true })) { await store.remove('activities', r.id); toast('Routine deleted', { undo: () => store.restore('activities', r) }); draw(s); } });
     el.querySelector('[data-tpl]')?.addEventListener('click', async () => { await store.save('activities', { kind: 'routine', category: 'routine', enabled: true, ...R.officeTemplate() }); toast('Office routine added — mark today when you log in'); draw(s); });
     el.querySelector('[data-new]')?.addEventListener('click', () => { s.close(); formSheet(null); });
+    el.querySelector('[data-desc]')?.addEventListener('click', () => { s.close(); describeRoutineSheet(); });
     el.querySelector('[data-notif]')?.addEventListener('click', async () => { if (!('Notification' in window)) return toast('Notifications aren’t supported here', { tone: 'warn' }); const r = await Notification.requestPermission(); await store.setSettings({ notifications: r === 'granted' }); toast(r === 'granted' ? 'Notifications on' : 'Not enabled — in-app reminders still work'); draw(s); });
   };
   openSheet({ title: 'Daily routines', tall: true, body: '', onOpen: draw });
 }
 
 const EVERY = [30, 45, 60, 90, 120];
-export function formSheet(r) {
-  const x = r ? { ...r, nudges: { ...R.DEFAULT_NUDGES, ...r.nudges } } : R.officeTemplate(); const n = x.nudges;
+export function formSheet(r, { draft = null } = {}) {
+  const x = r ? { ...r, nudges: { ...R.DEFAULT_NUDGES, ...r.nudges } } : draft ? { ...R.officeTemplate(), ...draft, nudges: { ...R.DEFAULT_NUDGES, ...draft.nudges } } : R.officeTemplate(); const n = x.nudges;
   const sel = (name, opts, cur, fmt = (v) => `${v} min`) => h`<select class="input" name="${name}">${opts.map((v) => h`<option value="${v}" ${Number(v) === Number(cur) ? 'selected' : ''}>${fmt(v)}</option>`)}</select>`;
   openSheet({
     title: r ? 'Edit routine' : 'New routine', tall: true,
@@ -113,6 +116,7 @@ export function formSheet(r) {
       <label class="check"><input type="checkbox" name="lunch_on" ${n.lunch.on ? 'checked' : ''}><span class="grow">Lunch</span><input class="input" type="time" name="lunch_at" value="${n.lunch.at}"></label>
       <label class="check"><input type="checkbox" name="eyes_on" ${n.eyes.on ? 'checked' : ''}><span class="grow">Rest your eyes</span>${sel('eyes_every', [20, 30, 45, 60], n.eyes.every, (v) => `every ${v} min`)}</label>
       <label class="check"><input type="checkbox" name="wrap_on" ${n.wrap.on !== false ? 'checked' : ''}><span>Wrap-up reminder 30 minutes before the end</span></label>
+      <div class="field"><span class="field-label">Your own reminders</span><textarea class="input" name="extras" rows="3" placeholder="One per line, e.g. 15:30 Stand and stretch">${(Array.isArray(n.custom) ? n.custom : []).map((c) => `${c.at} ${c.text}`).join('\n')}</textarea><small class="muted">Times must fall inside the routine’s hours.</small></div>
       <p class="form-error" id="re" role="alert"></p>
       <div class="row gap end"><button type="button" class="btn" data-x>Cancel</button><button class="btn btn-primary" type="submit">${r ? 'Save' : 'Create routine'}</button></div></form>`,
     onOpen(s) {
@@ -124,7 +128,8 @@ export function formSheet(r) {
         if (!name) return err('Give the routine a name.'); if (!days.length) return err('Pick at least one day.');
         if (!f.get('start') || !f.get('end') || f.get('end') <= f.get('start')) return err('End time must be after the start time.');
         const nudges = { water: { on: f.get('water_on') === 'on', every: Number(f.get('water_every')) }, break: { on: f.get('break_on') === 'on', every: Number(f.get('break_every')), len: Number(f.get('break_len')) },
-          lunch: { on: f.get('lunch_on') === 'on', at: f.get('lunch_at') || '13:30' }, eyes: { on: f.get('eyes_on') === 'on', every: Number(f.get('eyes_every')) }, wrap: { on: f.get('wrap_on') === 'on' } };
+          lunch: { on: f.get('lunch_on') === 'on', at: f.get('lunch_at') || '13:30' }, eyes: { on: f.get('eyes_on') === 'on', every: Number(f.get('eyes_every')) }, wrap: { on: f.get('wrap_on') === 'on' }, custom: [] };
+        for (const ln of String(f.get('extras') || '').split('\n').slice(0, 8)) { const m = /^\s*(\d{1,2}):(\d{2})\s+(.+?)\s*$/.exec(ln); if (m && Number(m[1]) < 24 && Number(m[2]) < 60) nudges.custom.push({ at: `${String(m[1]).padStart(2, '0')}:${m[2]}`, text: m[3].slice(0, 60) }); }
         await store.save('activities', { ...(r ? { id: r.id } : { enabled: true }), kind: 'routine', category: 'routine', name, days, start: f.get('start'), end: f.get('end'), assume: f.get('assume') === 'on', nudges });
         s.close(); toast(r ? 'Routine saved' : 'Routine created — mark today when you log in');
         if (!r && 'Notification' in window && Notification.permission === 'default') setTimeout(() => manageSheet(), 350);

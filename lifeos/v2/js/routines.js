@@ -4,6 +4,7 @@
 import { store } from './store.js';
 import { dayKey, addMinutes, addDays, startOfDay, parseKey, lsGet, lsSet, safeJSON } from './util.js';
 import * as T from './trackers.js';
+import { nudgeText } from './tone.js';
 
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monday first
@@ -33,7 +34,7 @@ export const setStatus = (r, key, status) => store.save('activities', { id: mark
 // ---- nudges ----
 export const ackOf = (key) => store.get('activities', `ack_${key}`);
 export const ack = (key, action, extra = {}) => store.save('activities', { id: `ack_${key}`, kind: 'nudge_ack', key, action, enabled: false, at: new Date().toISOString(), ...extra });
-const STALE = { water: 45, break: 60, lunch: 90, eyes: 20, wrap: 45, end: 180 };
+const STALE = { water: 45, break: 60, lunch: 90, eyes: 20, wrap: 45, end: 180, custom: 45 };
 export const NUDGE_META = {
   water: { icon: 'droplet', title: 'Drink some water', body: 'About a glass (250 ml) keeps energy steady.' },
   break: { icon: 'walk', title: 'Take a short break', body: 'Stand up, stretch, look away from the screen.' },
@@ -41,15 +42,17 @@ export const NUDGE_META = {
   eyes: { icon: 'sun', title: 'Rest your eyes', body: 'Look at something 6 m away for 20 seconds.' },
   wrap: { icon: 'clock', title: 'Wrap up soon', body: 'Jot tomorrow’s first task, then close things down.' },
   end: { icon: 'moon', title: 'Workday is over', body: 'Log out for the day — the rest is yours.' },
+  custom: { icon: 'bell', title: 'Reminder', body: '' },
 };
 
 export function planFor(r, date) {
   const key = dayKey(date); const { start, end } = windowOf(r, date); const n = { ...DEFAULT_NUDGES, ...(r.nudges || {}) };
-  const out = []; const add = (type, at, i = 0, extra = {}) => { if (at > start && at <= end) out.push({ key: `${r.id}:${key}:${type}:${i}`, type, at, routineId: r.id, ...NUDGE_META[type], ...extra }); };
+  const out = []; const add = (type, at, i = 0, extra = {}) => { if (at > start && at <= end) { const m = { ...NUDGE_META[type], ...extra }; out.push({ key: `${r.id}:${key}:${type}:${i}`, type, at, routineId: r.id, ...m, ...nudgeText(type, m) }); } };
   if (n.water?.on) for (let t = +n.water.every, i = 1; t < (end - start) / 60000 - 10; t += +n.water.every, i++) add('water', addMinutes(start, t), i);
   if (n.break?.on) for (let t = +n.break.every, i = 1; t < (end - start) / 60000 - 20; t += +n.break.every, i++) add('break', addMinutes(start, t), i, { len: +n.break.len || 10, title: `Take a ${+n.break.len || 10}-minute break` });
   if (n.eyes?.on) for (let t = +n.eyes.every, i = 1; t < (end - start) / 60000 - 10; t += +n.eyes.every, i++) add('eyes', addMinutes(start, t), i);
   if (n.lunch?.on) add('lunch', atTime(date, n.lunch.at), 0);
+  (Array.isArray(n.custom) ? n.custom : []).slice(0, 12).forEach((c, i) => { if (/^\d{1,2}:\d{2}$/.test(c?.at || '') && c.text) add('custom', atTime(date, c.at), i, { title: String(c.text).slice(0, 60), body: '' }); });
   if (n.wrap?.on !== false) add('wrap', addMinutes(end, -30), 0);
   add('end', end, 0);
   return out.sort((a, b) => a.at - b.at);

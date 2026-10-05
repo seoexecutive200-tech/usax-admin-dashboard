@@ -11,6 +11,7 @@ import { routineCards, routineActions } from '../routine-ui.js';
 import * as T from '../trackers.js';
 import { trackerCard, entrySheet, quickLog, builderSheet } from '../tracker-ui.js';
 import { updateReady, showUpdate, releaseNotes } from '../updates.js';
+import { todayLayout, customizeTodaySheet } from '../today-layout.js';
 
 let banners = [];
 export const setBanners = (b) => { banners = b; };
@@ -69,12 +70,9 @@ export default {
     const s = store.settings(); const custom = s.mode === 'custom'; const gap = custom ? 0 : A.gapDays(now); const habits = store.all('activities').filter((a) => a.enabled !== false && !a.kind);
     const minimal = s.minimalDay === dayKey();
     const rc = cap.overall >= 0.7 ? 'var(--green)' : cap.overall >= 0.5 ? 'var(--blue)' : 'var(--amber)';
-    return h`<div class="screen today">
-      <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn has-dot ${banners.length ? 'on' : ''}" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
-      <div class="hero"><h1>${greeting(now)}${prof.name ? `, ${prof.name}` : ''}</h1><p class="muted">${fmtDate(now)}</p></div>
-      ${banners.slice(0, 2).map((b) => h`<div class="banner"><span>${icon('clock', 18)} ${b.text}</span><span class="row gap"><button class="btn btn-sm" data-act="banner-open" data-e="${b.eventId}">Open</button><button class="icon-btn" data-act="banner-x" data-b="${b.id}" aria-label="Dismiss">${icon('x', 16)}</button></span></div>`)}
-      ${gap >= 3 && s.gapAck !== dayKey() ? h`<div class="card slim"><div class="eyebrow">Welcome back</div><p>It’s been ${gap} days. No catching up needed — just a quick recalibration.</p><button class="btn btn-sm btn-primary" data-act="gap" data-d="${gap}">Recalibrate</button></div>` : ''}
-      ${custom ? '' : h`<section class="card glance" data-act="capacity" role="button" tabindex="0" aria-label="Today at a glance. Tap for details">
+    const lay = todayLayout(s);
+    const P = {
+      glance: () => h`<section class="card glance" data-act="capacity" role="button" tabindex="0" aria-label="Today at a glance. Tap for details">
         <div class="row gap center">${ring({ pct: cap.overall, size: 58, stroke: 6, color: rc })}<div class="grow"><div class="eyebrow">Today at a glance</div><div class="headline">${A.glanceHeadline(cap)}</div></div>${icon('chevron', 18, 'muted')}</div>
         <div class="tiles">
           <div class="tile"><div class="tile-h">${icon('bolt', 16, 'c-blue')} Energy</div><div class="tile-v">${round(cap.energy, 1)}<small>/10</small></div><div class="bar"><i style="width:${cap.energy * 10}%;background:var(--blue)"></i></div></div>
@@ -82,27 +80,35 @@ export default {
           <div class="tile"><div class="tile-h">${icon('heart', 16, 'c-green')} Recovery</div><div class="tile-v sm">${cap.recoveryLabel}</div><div class="bar"><i style="width:${cap.recovery * 100}%;background:var(--green)"></i></div></div>
         </div>
         ${cap.estimated.energy ? h`<p class="tiny muted">Energy is estimated from your baseline until you log it.</p>` : ''}
-      </section>`}
-      ${updateReady() ? h`<button class="card slim update-chip" data-act="upd"><span class="t-ic lead">${icon('sparkle', 20)}</span><span class="grow"><b>Update available</b><small class="muted"> ${releaseNotes() ? `LifeOS ${releaseNotes().version}` : 'A new version'} — see what’s new</small></span>${icon('chevron', 16, 'muted')}</button>` : ''}
-      ${dueTrackerBanners(now)}
-      ${routineCards(now)}
-      ${minimal ? h`<div class="card slim"><div class="eyebrow">Essentials-only day is on</div><p>Showing only high-importance and time-fixed items. Nothing was deleted.</p><button class="btn btn-sm" data-act="minimal-off">Back to full plan</button></div>` : ''}
-      ${advisorCard(item)}
-      ${custom ? '' : focusCard(cap)}
-      ${trackersSection()}
-      ${habits.length && !custom ? h`<section><div class="sec-h"><h2>Habits</h2></div><div class="chips">${habits.map((a) => h`<button class="chip-btn big" data-act="habit" data-id="${a.id}">${a.name}</button>`)}</div></section>` : ''}
-      <section><div class="sec-h"><h2>Next</h2><button class="link" data-act="goplan">See all ${icon('chevron', 14)}</button></div>
+      </section>`,
+      routine: () => routineCards(now),
+      advisor: () => advisorCard(item),
+      focus: () => focusCard(cap),
+      trackers: () => trackersSection(),
+      habits: () => (habits.length ? h`<section><div class="sec-h"><h2>Habits</h2></div><div class="chips">${habits.map((a) => h`<button class="chip-btn big" data-act="habit" data-id="${a.id}">${a.name}</button>`)}</div></section>` : ''),
+      next: () => h`<section><div class="sec-h"><h2>Next</h2><button class="link" data-act="goplan">See all ${icon('chevron', 14)}</button></div>
         ${nexts.length ? h`<ul class="timeline">${nexts.map((e, i) => h`<li><span class="t-time">${fmtTime(e.start)}</span><button class="t-card ${EVENT_COLOR[e.type]}" data-act="event" data-id="${e.id}"><span class="t-main"><b>${e.title}</b><small>${[e.location, e.end !== e.start ? fmtDur((new Date(e.end) - new Date(e.start)) / 60000) : '', dayKey(e.start) !== dayKey() ? fmtDate(e.start, { weekday: 'short', day: 'numeric', month: 'short' }) : ''].filter(Boolean).join(' · ') || e.type.replace('_', ' ')}</small></span><span class="t-ic">${icon(EVENT_ICON[e.type] || 'target', 20)}</span></button></li>`)}</ul>`
         : h`<div class="empty"><p>Nothing scheduled ahead.</p><button class="btn btn-sm" data-act="log" data-k="event">${icon('plus', 16)} Add event</button></div>`}
-      </section>
-      <section><div class="sec-h"><h2>Coming Up</h2></div>
+      </section>`,
+      coming: () => h`<section><div class="sec-h"><h2>Coming Up</h2></div>
         ${ne ? h`<button class="card coming" data-act="ready" data-id="${ne.id}"><span class="date-tile"><small>${fmtDate(ne.start, { weekday: 'short' }).toUpperCase()}</small><b>${new Date(ne.start).getDate()}</b></span><span class="grow"><b>${ne.title}</b><small class="muted">${[ne.location, fmtDur((new Date(ne.end) - new Date(ne.start)) / 60000)].filter(Boolean).join(' · ')}</small></span><span class="rd"><small>Readiness</small><b>${pct(r.overall)}</b></span>${ring({ pct: r.overall, size: 44, stroke: 5, color: r.overall >= 0.7 ? 'var(--green)' : 'var(--blue)' })}${icon('chevron', 16, 'muted')}</button>`
           : h`<div class="empty"><p>No important events coming up.</p></div>`}
-      </section></div>`;
+      </section>`,
+    };
+    return h`<div class="screen today">
+      <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn has-dot ${banners.length ? 'on' : ''}" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
+      <div class="hero"><h1>${greeting(now)}${prof.name ? `, ${prof.name}` : ''}</h1><p class="muted">${fmtDate(now)}</p></div>
+      ${banners.slice(0, 2).map((b) => h`<div class="banner"><span>${icon('clock', 18)} ${b.text}</span><span class="row gap"><button class="btn btn-sm" data-act="banner-open" data-e="${b.eventId}">Open</button><button class="icon-btn" data-act="banner-x" data-b="${b.id}" aria-label="Dismiss">${icon('x', 16)}</button></span></div>`)}
+      ${gap >= 3 && s.gapAck !== dayKey() ? h`<div class="card slim"><div class="eyebrow">Welcome back</div><p>It’s been ${gap} days. No catching up needed — just a quick recalibration.</p><button class="btn btn-sm btn-primary" data-act="gap" data-d="${gap}">Recalibrate</button></div>` : ''}
+      ${updateReady() ? h`<button class="card slim update-chip" data-act="upd"><span class="t-ic lead">${icon('sparkle', 20)}</span><span class="grow"><b>Update available</b><small class="muted"> ${releaseNotes() ? `LifeOS ${releaseNotes().version}` : 'A new version'} — see what’s new</small></span>${icon('chevron', 16, 'muted')}</button>` : ''}
+      ${dueTrackerBanners(now)}
+      ${minimal ? h`<div class="card slim"><div class="eyebrow">Essentials-only day is on</div><p>Showing only high-importance and time-fixed items. Nothing was deleted.</p><button class="btn btn-sm" data-act="minimal-off">Back to full plan</button></div>` : ''}
+      ${lay.filter((c) => c.on).map((c) => P[c.id]())}
+      <div class="center"><button class="link" data-act="customize-today">${icon('edit', 14)} Customize Today</button></div></div>`;
   },
   actions: {
     ...routineActions,
-    upd: () => showUpdate(),
+    upd: () => showUpdate(), 'customize-today': () => customizeTodaySheet(),
     'trk-hub': () => navigate('#/trackers'), 'trk-new': () => builderSheet(), 'trk-open': (el) => navigate(`#/tracker/${el.dataset.id}`),
     'trk-log': (el) => entrySheet(store.get('trackers', el.dataset.id)), 'trk-quick': (el) => quickLog(el.dataset.id, el.dataset.f, el.dataset.v),
     'trk-pin': async (el) => { const t = store.get('trackers', el.dataset.id); await store.save('trackers', { id: t.id, pinned: !t.pinned }); },

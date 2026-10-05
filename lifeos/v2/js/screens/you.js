@@ -17,6 +17,9 @@ import { builderSheet, editorSheet, readTemplateFile } from '../tracker-ui.js';
 import { checkNow, switchToV1, version, showUpdate, updateReady } from '../updates.js';
 import { tourSheet } from '../tour.js';
 import * as P from '../push.js';
+import { customizeTodaySheet } from '../today-layout.js';
+import { TONES, getTone, nudgeText } from '../tone.js';
+import { NUDGE_META } from '../routines.js';
 import { sync, flush, syncNow, hasPending, clearSyncState, stopSync } from '../sync.js';
 import { forgetUser, logoutRequest, deleteAccountRequest } from '../account.js';
 
@@ -33,7 +36,7 @@ function memoryCard(m) {
 const fin = () => A.financeSummary();
 function v2Cards(s) {
   const trackers = T.allTrackers(); const rules = allRules();
-  return h`<section class="card"><div class="eyebrow">How LifeOS works for you</div><div class="field"><span class="field-label">Mode</span>${seg('appmode', [['classic', 'Classic'], ['custom', 'Blank canvas']], s.mode)}<small class="muted">Classic keeps the built-in sleep, mood, water and wellness suggestions. Blank canvas shows only what you create — your trackers, rules, routines and schedule.</small></div></section>
+  return h`<section class="card"><div class="eyebrow">How LifeOS works for you</div><div class="field"><span class="field-label">Mode</span>${seg('appmode', [['classic', 'Classic'], ['custom', 'Blank canvas']], s.mode)}<small class="muted">Classic keeps the built-in sleep, mood, water and wellness suggestions. Blank canvas shows only what you create — your trackers, rules, routines and schedule.</small></div><button class="btn btn-sm" data-act="customize-today">${icon('edit', 14)} Customize Today</button></section>
     <section class="card"><div class="row between center"><div class="eyebrow">Your trackers</div><button class="btn btn-sm btn-outline" data-act="trk-new">${icon('plus', 14)} New</button></div>
       <p class="small muted">${trackers.length ? `${trackers.length} tracker${trackers.length === 1 ? '' : 's'}: ${trackers.map((t) => t.name).slice(0, 5).join(', ')}${trackers.length > 5 ? '…' : ''}` : 'Describe anything you want to keep track of and LifeOS sets it up.'}</p>
       <div class="row gap wrap"><button class="btn btn-sm" data-act="trk-hub">Manage trackers</button><label class="btn btn-sm" for="tplfile">${icon('upload', 14)} Import template</label><input type="file" id="tplfile" data-change="tplfile" accept="application/json,.json" hidden></div></section>
@@ -51,6 +54,13 @@ function pushCard() {
     <p class="small">${line}</p>
     ${st.supported && st.available ? h`<div class="row gap wrap">${st.on ? h`<button class="btn btn-sm" data-act="push-test" ${busy ? 'disabled' : ''}>Send a test</button><button class="btn btn-sm btn-danger-ghost" data-act="push-off" ${busy ? 'disabled' : ''}>Turn off</button>` : h`<button class="btn btn-sm btn-primary" data-act="push-on" ${busy ? 'disabled' : ''}>${busy ? 'Turning on…' : 'Turn on'}</button>`}</div>` : ''}
     <p class="tiny muted">Covers your daily-routine nudges and tracker reminders. Quiet hours (above) are respected. Only the reminder text and time are sent to our server — not your entries. Rules and “Logged in” still need you to open the app.</p></section>`;
+}
+function coachCard(s) {
+  const tone = getTone(); const ex = nudgeText('water', NUDGE_META.water);
+  return h`<section class="card"><div class="eyebrow">Coaching style</div>
+    <div class="field"><span class="field-label">Tone</span>${seg('tone', Object.entries(TONES).map(([k, v]) => [k, v[0]]), tone)}<small class="muted">${TONES[tone][1]}. Applies to reminders, nudges and how the AI words its advice. Numbers and facts never change.</small></div>
+    <div class="card inset"><div class="tiny muted">Example reminder</div><b>${ex.title}</b>${ex.body ? h`<div class="small muted">${ex.body}</div>` : ''}</div>
+    <p class="tiny muted">How often the advisor speaks is set under Advisor mode above.</p></section>`;
 }
 let pushBusy = false;
 function accountCard() {
@@ -76,6 +86,7 @@ export default {
       <header class="top">${logo()}<span></span></header><div class="hero"><h1>You</h1><p class="muted">Your profile, priorities, memory and settings. Everything stays on this device.</p></div>
       ${accountCard()}
       ${v2Cards(s)}
+      ${coachCard(s)}
       ${pushCard()}
       <section class="card"><div class="eyebrow">Profile</div>${field('Name', h`<input class="input" data-input="name" value="${p.name}" maxlength="40" placeholder="What should I call you?">`)}
         <div class="field"><span class="field-label">Appearance</span>${seg('theme', [['dark', 'Dark'], ['light', 'Light'], ['system', 'System']], s.theme)}</div>
@@ -123,7 +134,8 @@ export default {
       bindSeg(root, async (name, v) => {
         if (name === 'theme') { await store.setSettings({ theme: v }); applyTheme(); }
         else if (name === 'motion') { await store.setSettings({ reducedMotion: v }); applyMotion(); }
-        else if (name === 'appmode') { await store.setSettings({ mode: v }); toast(v === 'custom' ? 'Blank canvas on — only what you create is shown' : 'Classic mode on'); }
+        else if (name === 'tone') { await store.setSettings({ coachTone: v }); toast(`Tone: ${TONES[v][0]}`); }
+        else if (name === 'appmode') { await store.setSettings({ mode: v, todayLayout: null }); toast(v === 'custom' ? 'Blank canvas on — only what you create is shown' : 'Classic mode on'); }
         else if (name === 'mode') { await store.setSettings({ advisorMode: v }); await store.setProfile({ advisorMode: v }); toast(`Advisor: ${v}`); }
       });
     }
@@ -151,6 +163,7 @@ export default {
   actions: {
     'trk-new': () => builderSheet(), 'trk-hub': () => navigate('#/trackers'), 'rule-new': () => newRuleSheet({ onSaved: () => rerender() }),
     'v-check': async () => { toast('Checking…'); const r = await checkNow(); toast(r === 'ready' ? 'An update is ready' : r === 'current' ? 'You’re up to date' : 'Couldn’t check right now', { tone: r === 'error' ? 'warn' : '' }); rerender(); },
+    'customize-today': () => customizeTodaySheet(),
     'push-on': async () => { pushBusy = true; rerender(); try { await P.enable(); toast('Background reminders are on'); } catch (e) { toast(e.message || 'Couldn’t turn on', { tone: 'warn', duration: 7000 }); } pushBusy = false; rerender(); },
     'push-off': async () => { pushBusy = true; rerender(); await P.disable(); pushBusy = false; toast('Background reminders are off'); rerender(); },
     'push-test': async () => { try { const r = await P.sendTest(); toast(`Test sent to ${r.delivered} device${r.delivered === 1 ? '' : 's'} — it should arrive in a few seconds`); } catch (e) { toast(e.message || 'Test failed', { tone: 'warn' }); } },
