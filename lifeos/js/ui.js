@@ -9,7 +9,8 @@ class Raw { constructor(s) { this.s = s; } toString() { return this.s; } }
 export const raw = (s) => new Raw(s);
 const flat = (v) => (v instanceof Raw ? v.s : Array.isArray(v) ? v.map(flat).join('') : v === false || v == null ? '' : esc(v));
 export const h = (strings, ...vals) => raw(strings.reduce((out, s, i) => out + s + (i < vals.length ? flat(vals[i]) : ''), ''));
-export const html = (x) => (x instanceof Raw ? x.s : esc(x));
+// Render a template result, a list of them, or plain text (escaped) to an HTML string.
+export const html = (x) => flat(x);
 
 /** Brand lockup. The glowing wordmark is made for dark backgrounds; light theme falls back to planet + live text. */
 export const logo = (big = false) => raw(`<div class="logo ${big ? 'big' : ''}" role="img" aria-label="LifeOS"><img class="logo-full" src="assets/logo.webp" alt="" decoding="async"><span class="logo-lite"><img src="assets/planet.webp" alt="" decoding="async"><span>Life<b>OS</b></span></span></div>`);
