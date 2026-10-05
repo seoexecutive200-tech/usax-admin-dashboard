@@ -6,6 +6,7 @@ import { h, icon, ring, bar, spark, toast, confirmSheet, openSheet } from '../ui
 import { back, navigate, rerender } from '../router.js';
 import { entrySheet, quickLog, editorSheet, exportTemplate, csvExport, csvImportSheet } from '../tracker-ui.js';
 import { fmtDate, fmtTime, round, isNum } from '../util.js';
+import { goalSection, convertToGoal, editGoal, coachSheet } from '../goal-ui.js';
 
 const color = (t) => T.COLOR_VAR[t.color] || 'var(--blue)';
 
@@ -16,9 +17,10 @@ export default {
     if (!t) return h`<div class="screen"><header class="top"><button class="icon-btn" data-act="back" aria-label="Back">${icon('chevronL', 22)}</button><h1 class="grow center-t">Tracker</h1><span style="width:44px"></span></header><div class="empty"><p>This tracker no longer exists.</p></div></div>`;
     const f = T.primaryField(t); const p = f ? T.progress(t, f) : null; const entries = T.entriesOf(t.id).slice(0, 25); const st = T.streak(t);
     return h`<div class="screen tracker"><header class="top"><button class="icon-btn" data-act="back" aria-label="Back">${icon('chevronL', 22)}</button><h1 class="grow center-t">${t.name}</h1><button class="icon-btn" data-act="menu" aria-label="More">${icon('more', 22)}</button></header>
-      <section class="card"><div class="row gap center">${p ? ring({ pct: Math.min(1, p.pct), size: 76, stroke: 8, color: p.met ? 'var(--green)' : color(t), label: `${Math.round(Math.min(p.pct, 1.99) * 100)}%`, sub: p.period === 'week' ? 'week' : 'today' }) : h`<span class="t-ic lead big-ic" style="color:${color(t)}">${icon(t.icon, 32)}</span>`}
+      <section class="card"><div class="row gap center">${p ? ring({ pct: Math.min(1, p.pct), size: 76, stroke: 8, color: p.met ? 'var(--green)' : color(t), label: `${Math.round(Math.min(p.pct, 1.99) * 100)}%`, sub: p.period === 'goal' ? 'to goal' : p.period === 'week' ? 'week' : 'today' }) : h`<span class="t-ic lead big-ic" style="color:${color(t)}">${icon(t.icon, 32)}</span>`}
         <div class="grow"><div class="headline">${T.summaryLine(t)}</div>${t.description ? h`<p class="small muted">${t.description}</p>` : ''}${st > 1 ? h`<span class="pill pill-green">${st}-day streak</span>` : ''}</div></div>
         <div class="row gap wrap"><button class="btn btn-primary" data-act="log">${icon('plus', 16)} Log</button>${f?.quick?.map((q) => h`<button class="chip-btn" data-act="quick" data-f="${f.id}" data-v="${q}">+${q}${f.unit ? ` ${f.unit}` : ''}</button>`) || ''}</div></section>
+      ${f ? goalSection(t, f) : ''}
       ${t.fields.filter((x) => T.isNumericField(x) || x.type === 'yesno').map((x) => { const s = T.stats(t, x, 30); const pts = T.series(t, x, 30); return h`<section class="card"><div class="row between"><span class="eyebrow">${x.label} · last 30 days</span><span class="pill">${T.AGGS[x.agg].toLowerCase()} per day</span></div>
         ${pts.filter((q) => isNum(q.value)).length > 1 ? spark(pts, { color: color(t), h: 54 }) : h`<p class="small muted">Log a few more days to see a chart.</p>`}
         <div class="stats"><div><small class="muted">Average</small><b>${s.avg === null ? '–' : T.formatValue(x, s.avg)}</b></div><div><small class="muted">Lowest</small><b>${s.min === null ? '–' : T.formatValue(x, s.min)}</b></div><div><small class="muted">Highest</small><b>${s.max === null ? '–' : T.formatValue(x, s.max)}</b></div><div><small class="muted">Days logged</small><b>${s.days}</b></div></div></section>`; })}
@@ -31,6 +33,7 @@ export default {
     back: () => back('#/trackers'),
     log: (_, __, { id }) => entrySheet(store.get('trackers', id)), quick: (el, _, { id }) => quickLog(id, el.dataset.f, el.dataset.v),
     edit: (el, _, { id }) => entrySheet(store.get('trackers', id), { entry: store.get('entries', el.dataset.e) }),
+    'goal-convert': (el, _, { id }) => convertToGoal(id, el.dataset.d), 'goal-edit': (_, __, { id }) => editGoal(id), 'goal-coach': (_, __, { id }) => coachSheet(id),
     newrule: (_, __, { id }) => newRuleSheet({ trackerId: id, onSaved: () => rerender() }),
     menu: (_, __, { id }) => {
       const t = store.get('trackers', id);

@@ -1,11 +1,17 @@
 {
   "latest": {
-    "version": "2.1.0",
+    "version": "2.2.0",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.1",
-    "summary": "Reminders now reach you even when LifeOS is closed.",
+    "title": "LifeOS 2.2",
+    "summary": "Goals you can reach — progress, pace and suggestions for “get to 80 kg”-style targets.",
     "notes": [
+      {
+        "since": "2.2.0",
+        "icon": "target",
+        "title": "Goals you can reach",
+        "text": "Say “reduce my weight to 80 kg in 8 weeks” and LifeOS tracks progress from where you start, estimates your pace and finish date, and suggests next steps — from your own numbers, plus optional AI coaching."
+      },
       {
         "since": "2.1.0",
         "icon": "bell",

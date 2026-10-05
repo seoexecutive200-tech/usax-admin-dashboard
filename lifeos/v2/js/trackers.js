@@ -29,7 +29,15 @@ export function normalizeTracker(raw) {
     else if (type === 'number' || type === 'duration') { if (isNum(Number(f?.min)) && f?.min !== '' && f?.min != null) field.min = Number(f.min); if (isNum(Number(f?.max)) && f?.max !== '' && f?.max != null && Number(f.max) !== 0) field.max = Number(f.max); }
     if (type === 'choice') { field.options = [...new Set((Array.isArray(f?.options) ? f.options : String(f?.options || '').split(',')).map((o) => str(o, 30)).filter(Boolean))].slice(0, 12); if (field.options.length < 2) errors.push(`“${label}” needs at least two choices.`); }
     const tv = Number(f?.target?.value ?? f?.targetValue);
-    if (isNum(tv) && tv > 0 && NUMERIC.has(type) || (isNum(tv) && tv > 0 && (type === 'yesno'))) field.target = { value: tv, period: (f?.target?.period || f?.targetPeriod) === 'week' ? 'week' : 'day', dir: (f?.target?.dir || f?.targetDir) === 'atmost' ? 'atmost' : 'atleast' };
+    if (isNum(tv) && tv > 0 && (NUMERIC.has(type) || type === 'yesno')) {
+      const per = f?.target?.period || f?.targetPeriod; const period = per === 'goal' && type === 'number' ? 'goal' : per === 'week' ? 'week' : 'day';
+      field.target = { value: tv, period, dir: (f?.target?.dir || f?.targetDir) === 'atmost' ? 'atmost' : 'atleast' };
+      if (period === 'goal') { // "reach X": optional starting value and optional date (or a number of weeks from now)
+        const st = Number(f?.target?.start ?? f?.targetStart); if (isNum(st) && st > 0) field.target.start = st;
+        const by = String(f?.target?.by ?? f?.targetBy ?? ''); const wk = Number(f?.targetWeeks);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(by) && !Number.isNaN(+parseKey(by))) field.target.by = by; else if (isNum(wk) && wk > 0 && wk <= 104) field.target.by = dayKey(addDays(new Date(), Math.round(wk * 7)));
+      }
+    }
     const q = (Array.isArray(f?.quick) ? f.quick : String(f?.quick || '').split(',')).map(Number).filter((x) => isNum(x) && x > 0).slice(0, 5);
     if (q.length && (type === 'number' || type === 'duration')) field.quick = q;
     fields.push(field);
@@ -78,11 +86,68 @@ export function series(t, field, days, end = new Date()) {
 /** Progress toward a field's target: { value, target, pct, dir, period, met }. */
 export function progress(t, field, now = new Date()) {
   const tg = field.target; if (!tg) return null;
+  if (tg.period === 'goal') return goalProgress(t, field, now);
   let value;
   if (tg.period === 'week') { const ws = startOfWeek(now); const days = Array.from({ length: 7 }, (_, i) => dayKey(addDays(ws, i))); const vals = days.map((k) => dayValue(t, field, k)).filter(isNum); value = vals.length ? (field.agg === 'avg' ? mean(vals) : field.agg === 'max' ? Math.max(...vals) : field.agg === 'min' ? Math.min(...vals) : sum(vals)) : 0; }
   else value = dayValue(t, field, dayKey(now)) ?? 0;
   const pct = clamp(value / tg.value, 0, 1.5);
   return { value, target: tg.value, pct, dir: tg.dir, period: tg.period, met: tg.dir === 'atmost' ? value <= tg.value : value >= tg.value };
+}
+
+// ---------- goals: "reduce my weight to 80 kg" ----------
+/** One reading per day (the latest of that day), oldest first. */
+export function readings(t, field, days = 180, now = new Date()) {
+  const cutoff = dayKey(addDays(now, -days)); const seen = new Set(); const out = [];
+  for (const e of entriesOf(t.id)) { // newest first
+    const k = dayKey(e.ts); if (k < cutoff || seen.has(k)) continue;
+    const v = Number(e.values?.[field.id]); if (!isNum(v) || e.values?.[field.id] === '' || e.values?.[field.id] === null) continue;
+    seen.add(k); out.push({ key: k, ts: e.ts, value: v });
+  }
+  return out.reverse();
+}
+const slopePerDay = (pts) => { // least squares on (day, value)
+  if (pts.length < 3) return null; const x0 = +parseKey(pts[0].key); const xs = pts.map((p) => (+parseKey(p.key) - x0) / 86400000);
+  if (xs[xs.length - 1] - xs[0] < 5) return null; const mx = mean(xs); const my = mean(pts.map((p) => p.value));
+  const den = sum(xs.map((x) => (x - mx) ** 2)); return den ? sum(xs.map((x, i) => (x - mx) * (pts[i].value - my))) / den : null;
+};
+export function goalProgress(t, field, now = new Date()) {
+  const tg = field.target; const down = tg.dir === 'atmost'; const pts = readings(t, field, 180, now);
+  const base = { target: tg.value, dir: tg.dir, period: 'goal' };
+  if (!pts.length && !(tg.start > 0)) return { ...base, value: null, pct: 0, met: false, goal: { down, start: null, current: null, remaining: null, by: tg.by || null, readings: 0 } };
+  const start = tg.start > 0 ? tg.start : pts[0].value; const current = pts.length ? pts[pts.length - 1].value : start;
+  const total = Math.abs(start - tg.value); const done = down ? start - current : current - start;
+  const met = down ? current <= tg.value : current >= tg.value;
+  const pct = met ? 1 : total > 0 ? clamp(done / total, 0, 1) : 0;
+  const remaining = met ? 0 : Math.abs(tg.value - current);
+  const recent = pts.filter((p) => p.key >= dayKey(addDays(now, -28)));
+  const slope = slopePerDay(recent); const rate = slope === null ? null : (down ? -slope : slope) * 7; // per week, positive = moving toward the goal
+  const eta = !met && rate !== null && rate > 0.005 ? addDays(now, Math.ceil((remaining / rate) * 7)) : null;
+  const by = tg.by ? parseKey(tg.by) : null; const daysLeft = by ? Math.ceil((+by - +now) / 86400000) : null;
+  const needed = by && daysLeft > 0 && !met ? remaining / (daysLeft / 7) : null;
+  const last14 = pts.filter((p) => p.key >= dayKey(addDays(now, -14)));
+  const plateau = !met && last14.length >= 4 && (+parseKey(last14[last14.length - 1].key) - +parseKey(last14[0].key)) / 86400000 >= 9 && (Math.max(...last14.map((p) => p.value)) - Math.min(...last14.map((p) => p.value))) < Math.abs(current) * 0.004;
+  return { ...base, value: current, pct, met, goal: { down, start, current, remaining, changed: done, rate, eta, by: tg.by || null, daysLeft, needed, plateau, readings: pts.length, last14: last14.length, firstKey: pts[0]?.key || null, onTrack: needed !== null && rate !== null ? rate >= needed * 0.9 : null } };
+}
+const fmtN = (f, v) => formatValue(f, v);
+/** Plain-language read-out and next steps, computed locally from the readings (no AI, nothing sent anywhere). */
+export function goalAdvice(t, field, now = new Date()) {
+  const p = goalProgress(t, field, now); const g = p.goal; const out = []; const word = g.down ? 'down' : 'up';
+  if (!g.readings) return { p, lines: [{ icon: 'target', title: 'Set your starting point', text: `Log your first ${field.label.toLowerCase()} reading. I’ll measure your progress to ${fmtN(field, p.target)} from it.` }] };
+  if (p.met) out.push({ icon: 'check', title: 'You’ve reached your goal', text: `You’re at ${fmtN(field, g.current)} — target ${fmtN(field, p.target)}. Keep logging to see whether it holds, or set a new goal.` });
+  else out.push({ icon: 'chart', title: `${fmtN(field, g.remaining)} to go`, text: `${g.changed > 0 ? `You’re ${word} ${fmtN(field, Math.abs(g.changed))} since you started (${fmtN(field, g.start)} → ${fmtN(field, g.current)}).` : g.changed < 0 ? `You’re ${fmtN(field, Math.abs(g.changed))} away from your start in the other direction (${fmtN(field, g.start)} → ${fmtN(field, g.current)}) — that happens; the trend over weeks matters more than any one reading.` : `Starting from ${fmtN(field, g.start)}.`}` });
+  if (!p.met && g.rate !== null) {
+    if (g.rate > 0.005) out.push({ icon: 'clock', title: `Pace: ${round(g.rate, 2)} ${field.unit || ''} a week`.replace('  ', ' '), text: `At your recent pace you’d reach ${fmtN(field, p.target)} around ${g.eta.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}.` });
+    else out.push({ icon: 'clock', title: 'No clear movement yet', text: `Over the last few weeks your readings are flat or going the other way, so I can’t estimate a date yet.` });
+  } else if (!p.met && g.readings < 3) out.push({ icon: 'clock', title: 'Not enough readings for a pace yet', text: 'Log a few readings over at least a week and I’ll estimate your pace and finishing date.' });
+  if (g.by && !p.met) {
+    if (g.daysLeft <= 0) out.push({ icon: 'flag', title: 'Your target date has passed', text: 'Extend it or pick a new date in Edit tracker so the plan matches reality.' });
+    else if (g.needed !== null) out.push({ icon: 'flag', title: `${round(g.needed, 2)} ${field.unit || ''} a week needed`.replace('  ', ' '), text: g.onTrack === null ? `To reach it by ${g.by} (${g.daysLeft} days).` : g.onTrack ? `You’re on track for ${g.by}.` : `You’re behind the pace for ${g.by}. Consider moving the date or looking at what could change this week.` });
+  }
+  const unit = String(field.unit || '').toLowerCase();
+  if (!p.met && g.down && g.rate && (unit === 'kg' || unit === 'lb' || unit === 'lbs') && g.rate > g.current * 0.01) out.push({ icon: 'shield', title: 'That pace is fast', text: 'Losing more than about 1% of your body weight a week is hard to sustain. A steadier pace is usually safer — and if you have a health condition, check with a professional.' });
+  if (g.plateau) out.push({ icon: 'bolt', title: 'Plateau', text: 'Your readings have barely moved for two weeks. Small changes to routine, sleep or activity often help — try one change for a week and see.' });
+  if (g.last14 < 5) out.push({ icon: 'bell', title: 'Log more often', text: `Only ${g.last14} reading${g.last14 === 1 ? '' : 's'} in the last 14 days. Same time each day (e.g. mornings) makes the trend reliable.` });
+  return { p, lines: out };
 }
 export function stats(t, field, days = 30) {
   const pts = series(t, field, days).filter((p) => isNum(p.value));
@@ -106,6 +171,7 @@ export function formatValue(field, v) {
 export function summaryLine(t, now = new Date()) {
   const f = primaryField(t); if (!f) return '';
   const p = progress(t, f, now); const key = dayKey(now);
+  if (p?.period === 'goal') return p.goal.current === null ? `Goal: ${formatValue(f, p.target)} · log your starting ${f.label.toLowerCase()}` : p.met ? `${formatValue(f, p.goal.current)} · goal reached 🎉` : `${formatValue({ ...f, unit: '' }, p.goal.current)} → ${formatValue(f, p.target)} · ${formatValue(f, p.goal.remaining)} to go`;
   if (p) return `${formatValue({ ...f, unit: '' }, p.value)} / ${formatValue(f, p.target)}${p.period === 'week' ? ' this week' : ''}`;
   const v = dayValue(t, f, key);
   if (v !== null) return `${f.label}: ${formatValue(f, v)} today`;

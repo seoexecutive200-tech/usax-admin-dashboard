@@ -1,5 +1,6 @@
 // Single source of truth for "what's new in LifeOS 2" (also mirrored into releases.json for the update card).
 export const WHATS_NEW = [
+  { since: '2.2.0', icon: 'target', title: 'Goals you can reach', text: 'Say “reduce my weight to 80 kg in 8 weeks” and LifeOS tracks progress from where you start, estimates your pace and finish date, and suggests next steps — from your own numbers, plus optional AI coaching.' },
   { since: '2.1.0', icon: 'bell', title: 'Reminders even when LifeOS is closed', text: 'Turn on background reminders in You and your water, break and lunch nudges and tracker reminders arrive as notifications while the app is closed. Quiet hours are respected; only reminder text is sent.' },
   { icon: 'sparkle', title: 'Describe it, and it builds itself', text: 'Tell LifeOS what you want to track in your own words. It designs the tracker — fields, targets, reminders — and you review it before anything is saved.' },
   { icon: 'target', title: 'Track anything', text: 'Numbers, scales, yes/no, choices, durations and notes, with daily totals, targets, streaks and charts that fit what you defined.' },

@@ -24,13 +24,14 @@ const proposedActions = { type: 'array', items: obj({ type: { type: 'string', en
 export const SCHEMAS = {
   tracker: obj({
     name: str, icon: { type: 'string', enum: ICON_ENUM }, color: { type: 'string', enum: COLOR_ENUM }, description: str, keywords: strArr,
-    fields: { type: 'array', items: obj({ label: str, type: { type: 'string', enum: FIELD_TYPE_ENUM }, unit: str, min: num, max: num, options: strArr, agg: { type: 'string', enum: AGG_ENUM }, targetValue: num, targetPeriod: { type: 'string', enum: ['day', 'week'] }, targetDir: { type: 'string', enum: ['atleast', 'atmost'] }, quick: numArr }) },
+    fields: { type: 'array', items: obj({ label: str, type: { type: 'string', enum: FIELD_TYPE_ENUM }, unit: str, min: num, max: num, options: strArr, agg: { type: 'string', enum: AGG_ENUM }, targetValue: num, targetPeriod: { type: 'string', enum: ['day', 'week', 'goal'] }, startValue: num, targetWeeks: num, targetDir: { type: 'string', enum: ['atleast', 'atmost'] }, quick: numArr }) },
     reminders: { type: 'array', items: obj({ time: str, days: numArr, text: str }) },
     rules: { type: 'array', items: obj({ name: str, kind: { type: 'string', enum: ['threshold', 'count', 'streak', 'missing'] }, fieldLabel: str, op: { type: 'string', enum: ['>', '>=', '<', '<=', '=', ''] }, value: num, windowDays: num, count: num, byTime: str, message: str }) },
     note: str,
   }),
   rule: obj({ name: str, trackerId: str, kind: { type: 'string', enum: ['threshold', 'count', 'streak', 'missing'] }, field: str, op: { type: 'string', enum: ['>', '>=', '<', '<=', '=', ''] }, value: num, windowDays: num, count: num, byTime: str, message: str, problem: str }),
   route: obj({ entries: { type: 'array', items: obj({ trackerId: str, valuesJson: str, confidence: num, clarification: str }) } }),
+  coach: obj({ summary: str, suggestions: { type: 'array', items: obj({ title: str, detail: str }) }, watchOuts: strArr, questions: strArr }),
   series: obj({ x: str, y: str, lagDays: num, explanation: str }),
   advisor: obj({
     decision: { type: 'string', enum: ['silent', 'observe', 'suggest', 'ask_quick_question', 'urgent_escalation'] },
