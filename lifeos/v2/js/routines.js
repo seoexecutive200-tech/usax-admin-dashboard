@@ -112,7 +112,11 @@ export function prune() {
 // ---- notification loop (runs while the app is open or alive in the background) ----
 const NOTIFIED = 'lifeos.notifiedNudges';
 let lastSig = '';
+export async function wasPushed(tag) {
+  try { return !!(tag && 'caches' in window && await caches.match(new URL(`__pushed/${encodeURIComponent(tag)}`, document.baseURI), { cacheName: 'pushed-ids' })); } catch { return false; }
+}
 export async function notify(title, body, tag) {
+  if (await wasPushed(tag)) return; // already delivered by the server while the app was closed
   if (!store.settings().notifications || !('Notification' in window) || Notification.permission !== 'granted') return;
   try {
     const reg = await navigator.serviceWorker?.getRegistration?.();

@@ -9,7 +9,7 @@ import * as T from './trackers.js';
 
 const FLAG = 'lifeos.push2'; // per device: this browser has background reminders on
 const HORIZON_MS = 70 * 3600 * 1000;
-export const state = { supported: false, reason: '', permission: 'default', on: false, available: false, devices: 0, loaded: false };
+export const state = { supported: false, reason: '', permission: 'default', on: false, available: false, devices: 0, tickAt: null, loaded: false };
 let lastSig = ''; let timer = null; let hooked = false; let last = 0;
 
 const ios = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -31,7 +31,7 @@ export async function refreshStatus() {
   state.permission = 'Notification' in window ? Notification.permission : 'denied';
   state.on = lsGet(FLAG) === '1' && state.permission === 'granted';
   if (state.supported) {
-    try { const info = await api('/api/push', { method: 'GET' }); state.available = !!info.available; state.devices = info.devices || 0; } catch { /* offline: keep the last known state */ }
+    try { const info = await api('/api/push', { method: 'GET' }); state.available = !!info.available; state.devices = info.devices || 0; state.tickAt = info.tickAt || null; } catch { /* offline: keep the last known state */ }
   } else { state.available = false; }
   state.loaded = true; last = Date.now();
   return before !== JSON.stringify(state);

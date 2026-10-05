@@ -4,7 +4,7 @@
 //   POST /api/push {action:'unsubscribe', endpoint}
 //   POST /api/push {action:'schedule', jobs:[{id, at, title, body, url}]}   (replaces the pending schedule)
 //   POST /api/push {action:'test'}       -> sends a test notification to this account's devices
-import { send, readBody, checkOrigin, storageConfigured, sessionUser } from './_lib.js';
+import { send, readBody, checkOrigin, storageConfigured, sessionUser, readJSON } from './_lib.js';
 import { vapidReady, loadDoc, saveDoc, sanitizeSub, sanitizeJobs, sendPush, MAX_SUBS } from './_push.js';
 
 export default async function handler(req, res) {
@@ -14,8 +14,8 @@ export default async function handler(req, res) {
     const s = await sessionUser(req).catch(() => null);
     if (req.method === 'GET') {
       if (!available || !s) return send(res, 200, { available: false });
-      const d = await loadDoc(s.user.id);
-      return send(res, 200, { available: true, publicKey: process.env.VAPID_PUBLIC_KEY, subscribed: d.subs.length > 0, devices: d.subs.length });
+      const d = await loadDoc(s.user.id); const tick = (await readJSON('meta/push-tick.json').catch(() => null))?.json;
+      return send(res, 200, { available: true, publicKey: process.env.VAPID_PUBLIC_KEY, subscribed: d.subs.length > 0, devices: d.subs.length, tickAt: tick?.at || null });
     }
     if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
     if (!available) return send(res, 503, { error: 'Background notifications are not enabled on this server yet.' });

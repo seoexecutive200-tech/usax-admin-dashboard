@@ -53,6 +53,7 @@ function pushCard() {
   return h`<section class="card"><div class="row between center"><div class="eyebrow">Background reminders</div><span class="status ${st.on ? 'ok' : ''}"><i></i>${st.on ? 'On' : 'Off'}</span></div>
     <p class="small">${line}</p>
     ${st.supported && st.available ? h`<div class="row gap wrap">${st.on ? h`<button class="btn btn-sm" data-act="push-test" ${busy ? 'disabled' : ''}>Send a test</button><button class="btn btn-sm btn-danger-ghost" data-act="push-off" ${busy ? 'disabled' : ''}>Turn off</button>` : h`<button class="btn btn-sm btn-primary" data-act="push-on" ${busy ? 'disabled' : ''}>${busy ? 'Turning on…' : 'Turn on'}</button>`}</div>` : ''}
+    ${st.on && st.available ? clockLine(st) : ''}
     <p class="tiny muted">Covers your daily-routine nudges and tracker reminders. Quiet hours (above) are respected. Only the reminder text and time are sent to our server — not your entries. Rules and “Logged in” still need you to open the app.</p></section>`;
 }
 function coachCard(s) {
@@ -61,6 +62,10 @@ function coachCard(s) {
     <div class="field"><span class="field-label">Tone</span>${seg('tone', Object.entries(TONES).map(([k, v]) => [k, v[0]]), tone)}<small class="muted">${TONES[tone][1]}. Applies to reminders, nudges and how the AI words its advice. Numbers and facts never change.</small></div>
     <div class="card inset"><div class="tiny muted">Example reminder</div><b>${ex.title}</b>${ex.body ? h`<div class="small muted">${ex.body}</div>` : ''}</div>
     <p class="tiny muted">How often the advisor speaks is set under Advisor mode above.</p></section>`;
+}
+function clockLine(st) {
+  const ago = st.tickAt ? Math.round((Date.now() - st.tickAt) / 60000) : null; const live = ago !== null && ago <= 15;
+  return h`<p class="small ${live ? '' : 'err-t'}">${icon(live ? 'check' : 'clock', 14)} <b>Reminder clock:</b> ${live ? `running (last ran ${ago < 1 ? 'just now' : `${ago} min ago`}).` : ago === null ? 'not running yet. Until the site’s scheduler is set up, reminders only reach you when LifeOS is open.' : `last ran ${ago < 90 ? `${ago} min` : `${Math.round(ago / 60)} h`} ago — it may have stopped. Reminders only reach you when LifeOS is open until it runs again.`}</p>`;
 }
 let pushBusy = false;
 function accountCard() {

@@ -1,6 +1,6 @@
 // LifeOS 2 offline shell. A new version installs quietly and WAITS; the app asks the user, and only then switches over.
 // Never touches API calls (Groq or /api) so no personal data lands in a cache.
-const VERSION = 'lifeos2-v2.3.0';
+const VERSION = 'lifeos2-v2.3.1';
 // <shell>
 const SHELL = ["./","app.js","index.html","js/account.js","js/actions.js","js/advisor.js","js/ai-context.js","js/analytics.js","js/ask-ui.js","js/calendar.js","js/capture-parser.js","js/db.js","js/export-import.js","js/goal-ui.js","js/groq.js","js/memory.js","js/prompts.js","js/push.js","js/reports.js","js/router.js","js/routine-ai.js","js/routine-ui.js","js/routines.js","js/rules-ui.js","js/rules.js","js/schemas.js","js/screens/auth.js","js/screens/capture.js","js/screens/insights.js","js/screens/onboarding.js","js/screens/plan.js","js/screens/readiness.js","js/screens/today.js","js/screens/tracker.js","js/screens/trackers.js","js/screens/you.js","js/seed.js","js/sheets.js","js/store.js","js/sync.js","js/today-layout.js","js/tone.js","js/tour.js","js/tracker-ui.js","js/trackers.js","js/ui.js","js/updates.js","js/util.js","js/whatsnew.js","manifest.json","styles.css","../assets/favicon.png","../assets/logo.webp","../assets/planet.webp","../assets/icon-192.png","../assets/icon-512.png","../assets/icon-maskable-512.png","../assets/apple-touch-icon.png"];
 // </shell>
@@ -34,8 +34,14 @@ self.addEventListener('notificationclick', (e) => {
 self.addEventListener('push', (e) => {
   let d = {}; try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data ? e.data.text() : '' }; }
   const title = String(d.title || 'LifeOS').slice(0, 80);
-  e.waitUntil(self.registration.showNotification(title, { body: String(d.body || '').slice(0, 200), tag: String(d.id || 'lifeos'), icon: '../assets/icon-192.png', badge: '../assets/icon-192.png', data: { url: typeof d.url === 'string' && d.url.startsWith('./') ? d.url : './index.html#/today' } }));
+  const id = String(d.id || '');
+  e.waitUntil(Promise.all([remember(id), self.registration.showNotification(title, { body: String(d.body || '').slice(0, 200), tag: String(d.id || 'lifeos'), icon: '../assets/icon-192.png', badge: '../assets/icon-192.png', data: { url: typeof d.url === 'string' && d.url.startsWith('./') ? d.url : './index.html#/today' } })]));
 });
+// Remember which reminders were already delivered in the background so the open app doesn't announce them again.
+async function remember(id) {
+  if (!id) return;
+  try { const c = await caches.open('pushed-ids'); await c.put(new URL(`__pushed/${encodeURIComponent(id)}`, self.registration.scope), new Response('1')); const ks = await c.keys(); for (const k of ks.slice(0, Math.max(0, ks.length - 200))) await c.delete(k); } catch { /* best effort */ }
+}
 // The browser can rotate a subscription; re-register it so reminders keep arriving.
 self.addEventListener('pushsubscriptionchange', (e) => e.waitUntil((async () => {
   try {

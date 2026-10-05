@@ -1,5 +1,6 @@
 // Single source of truth for "what's new in LifeOS 2" (also mirrored into releases.json for the update card).
 export const WHATS_NEW = [
+  { since: '2.3.1', icon: 'bell', title: 'Background reminders, made visible', text: 'You → Background reminders now shows whether the reminder clock is running, and a reminder that already reached you in the background no longer pops up a second time when you open the app.' },
   { since: '2.3.0', icon: 'home', title: 'Make Today yours', text: 'Choose which cards show on Today and put them in your order — routines, trackers, advisor, glance and more. Find it under Customize Today.' },
   { since: '2.3.0', icon: 'clock', title: 'Describe your routines in words', text: '“Gym Mon, Wed, Fri 7–8am, wind-down weekdays 10pm with a reminder to put the phone away.” LifeOS builds the routines and reminders and you review them before saving.' },
   { since: '2.3.0', icon: 'smile', title: 'Your coaching tone', text: 'Pick Gentle, Direct or Minimal. Reminders, nudges and the AI’s wording follow your style — the facts and numbers never change.' },
