@@ -1,6 +1,6 @@
 // Offline shell. Caches only same-origin static files. API traffic (Groq) is never intercepted or cached,
 // so no personal context ever lands in a cache.
-const VERSION = 'lifeos-v1.3.0';
+const VERSION = 'lifeos-v1.4.0';
 const SHELL = [
   './', 'index.html', 'styles.css', 'app.js', 'manifest.json', 'assets/favicon.png', 'assets/logo.webp', 'assets/planet.webp', 'assets/icon-maskable-512.png', 'assets/icon-192.png', 'assets/icon-512.png', 'assets/apple-touch-icon.png',
   'js/util.js', 'js/db.js', 'js/store.js', 'js/router.js', 'js/analytics.js', 'js/groq.js', 'js/prompts.js', 'js/schemas.js', 'js/ai-context.js', 'js/advisor.js',
@@ -12,15 +12,19 @@ self.addEventListener('install', (e) => { e.waitUntil(caches.open(VERSION).then(
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
+// Network-first for the app shell so a deploy is picked up on the very next open; the cache keeps it working offline.
 self.addEventListener('fetch', (e) => {
   const req = e.request; const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.includes('/api/')) return; // never touch Groq, other origins, or account/data API calls
   e.respondWith((async () => {
     const cache = await caches.open(VERSION);
-    const hit = await cache.match(req, { ignoreSearch: true });
-    const net = fetch(req).then((res) => { if (res.ok && res.type === 'basic') cache.put(req, res.clone()); return res; }).catch(() => null);
-    if (hit) { net.catch(() => {}); return hit; }               // stale-while-revalidate
-    return (await net) || (req.mode === 'navigate' ? cache.match('index.html') : Response.error());
+    try {
+      const res = await Promise.race([fetch(req), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 4000))]);
+      if (res.ok && res.type === 'basic') cache.put(req, res.clone());
+      return res;
+    } catch {
+      return (await cache.match(req, { ignoreSearch: true })) || (req.mode === 'navigate' ? cache.match('index.html') : Response.error());
+    }
   })());
 });
 

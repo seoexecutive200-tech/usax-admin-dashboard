@@ -26,12 +26,12 @@ export function render(animate = false) {
   current = screen; currentParams = params;
   const scroll = changed ? (scrollPos[name] ?? 0) : window.scrollY;
   const out = html(screen.render(params));
-  // Background refresh (sync, reminders, returning to the app): do nothing if the screen would look identical,
-  // otherwise swap the content in silently — no intro animations replaying, no scroll jump.
+  // Background refresh (sync, reminders, returning to the app, in-page filters): patch only what differs.
+  // Untouched elements (images, inputs, scroll position, running transitions) stay exactly as they are.
   const silent = !animate && !changed;
   if (silent && out === lastHTML) return;
   lastHTML = out;
-  viewEl.classList.toggle('silent', silent);
+  if (silent) { const tpl = document.createElement('template'); tpl.innerHTML = out; morph(viewEl, tpl.content); currentName = name; return; }
   viewEl.innerHTML = out;
   viewEl.classList.toggle('enter', animate || changed);
   if (animate || changed) { viewEl.style.animation = 'none'; void viewEl.offsetWidth; viewEl.style.animation = ''; }
@@ -42,6 +42,26 @@ export function render(animate = false) {
   document.body.dataset.screen = name;
   window.scrollTo({ top: changed && !scrollPos[name] ? 0 : scroll, behavior: 'instant' });
   if (changed) { history_.push(name); if (history_.length > 30) history_.shift(); viewEl.focus({ preventScroll: true }); }
+}
+
+/** Re-render the current screen in place (no transition). */
+export const rerender = () => render(false);
+
+// Minimal DOM morph: update `from` so it matches `to`, touching only the nodes that differ.
+function morph(from, to) {
+  const a = [...from.childNodes]; const b = [...to.childNodes];
+  for (let i = a.length - 1; i >= b.length; i--) from.removeChild(a[i]);
+  b.forEach((nb, i) => { if (!a[i]) from.appendChild(nb.cloneNode(true)); else patch(a[i], nb); });
+}
+function patch(x, y) {
+  if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) { x.replaceWith(y.cloneNode(true)); return; }
+  if (x.nodeType !== 1) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; return; }
+  if (x.isEqualNode(y)) return;
+  if (x === document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(x.nodeName)) return; // never disturb typing
+  for (const at of [...x.attributes]) if (!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+  for (const at of y.attributes) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+  if (x.nodeName === 'INPUT' && x.type !== 'file') x.value = y.getAttribute('value') ?? '';
+  morph(x, y);
 }
 
 export function refresh() { if (current && !current.static && !document.body.classList.contains('typing')) render(false); }

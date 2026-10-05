@@ -88,7 +88,8 @@ export default {
     const ta = el.querySelector('#cap-text');
     ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); process(ta.value); } });
     ta.addEventListener('focus', () => document.body.classList.add('typing')); ta.addEventListener('blur', () => document.body.classList.remove('typing'));
-    el.addEventListener('input', (e) => { const i = e.target.dataset.adj; if (i !== undefined) { pending[i].fields.value = Number(e.target.value); pending[i].summary = `${pending[i].fields.logType[0].toUpperCase()}${pending[i].fields.logType.slice(1)} ${e.target.value}/10`; e.target.nextElementSibling.textContent = e.target.value; e.target.closest('.understood').querySelector('.strong').textContent = pending[i].summary; } });
+    if (!el._capBound) el.addEventListener('input', (e) => { const i = e.target.dataset.adj; if (i !== undefined) { pending[i].fields.value = Number(e.target.value); pending[i].summary = `${pending[i].fields.logType[0].toUpperCase()}${pending[i].fields.logType.slice(1)} ${e.target.value}/10`; e.target.nextElementSibling.textContent = e.target.value; e.target.closest('.understood').querySelector('.strong').textContent = pending[i].summary; } });
+    el._capBound = true;
   },
   actions: {
     back: () => back('#/today'), go: () => process(root.querySelector('#cap-text').value),

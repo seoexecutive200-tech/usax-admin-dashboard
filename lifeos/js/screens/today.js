@@ -116,5 +116,5 @@ export default {
     'banner-open': (el) => eventDetailSheet(el.dataset.e),
     'banner-x': async (el) => { await store.setSettings({ dismissed: { ...store.settings().dismissed, [`banner:${el.dataset.b}`]: new Date().toISOString() } }); banners = banners.filter((b) => b.id !== el.dataset.b); },
   },
-  mount(root) { root.querySelector('.glance')?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); capacitySheet(); } }); },
+  mount(root) { const g = root.querySelector('.glance'); if (g && !g._kb) { g._kb = true; g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); capacitySheet(); } }); } },
 };

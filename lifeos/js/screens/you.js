@@ -8,7 +8,7 @@ import { sourceLabel, addMemory, correctMemory, markWrong, setPrivate, setUseFor
 import { exportData, importData } from '../export-import.js';
 import { loadDemo, removeDemo, hasDemo } from '../seed.js';
 import { commit, askSheet } from '../sheets.js';
-import { navigate } from '../router.js';
+import { navigate, rerender } from '../router.js';
 import { exportWeekly } from './insights.js';
 import { isPersistent, getDbName, deleteDatabase } from '../db.js';
 import { sync, flush, syncNow, hasPending, clearSyncState, stopSync } from '../sync.js';
@@ -78,7 +78,7 @@ export default {
         ${field(`Temperature ${s.temperature}`, h`<input type="range" min="0" max="1" step="0.1" value="${s.temperature}" data-change="temp" aria-label="Temperature">`)}
         <p class="muted small">Only a compact, relevant context is sent per request — never your key, exports, private memories or raw notes. Core tracking works without AI.</p></section>
       <section class="card"><div class="eyebrow">Data</div><div class="stack">
-        <button class="btn" data-act="export">${icon('download', 18)} Export data (JSON)</button><button class="btn" data-act="import">${icon('upload', 18)} Import data</button><input type="file" id="imp" accept="application/json,.json" hidden>
+        <button class="btn" data-act="export">${icon('download', 18)} Export data (JSON)</button><button class="btn" data-act="import">${icon('upload', 18)} Import data</button><input type="file" id="imp" data-change="impfile" accept="application/json,.json" hidden>
         <button class="btn" data-act="weekly">${icon('download', 18)} Export weekly report</button>
         ${hasDemo() ? h`<button class="btn" data-act="rmdemo">Remove demo data</button>` : h`<button class="btn" data-act="demo">Load demo data</button>`}
         <button class="btn btn-danger-ghost" data-act="reset">${icon('trash', 18)} Reset all data</button></div>
@@ -86,19 +86,22 @@ export default {
       <p class="center muted tiny">LifeOS V1 · local-first · estimates, not medical advice</p></div>`;
   },
   mount(root) {
-    bindSeg(root, async (name, v) => {
-      if (name === 'theme') { await store.setSettings({ theme: v }); applyTheme(); }
-      else if (name === 'motion') { await store.setSettings({ reducedMotion: v }); applyMotion(); }
-      else if (name === 'mode') { await store.setSettings({ advisorMode: v }); await store.setProfile({ advisorMode: v }); toast(`Advisor: ${v}`); }
-    });
-    root.querySelector('#imp')?.addEventListener('change', async (e) => {
-      const file = e.target.files[0]; if (!file) return;
-      try { const text = await file.text(); const ok = await confirmSheet({ title: 'Replace all data?', message: `Importing “${file.name}” replaces everything currently stored on this device.`, confirm: 'Import', danger: true }); if (!ok) return;
-        const r = await importData(text); toast(`Imported ${Object.values(r.counts).reduce((a, b) => a + b, 0)} records`); } catch (err) { toast(err.message, { tone: 'warn' }); }
-      e.target.value = '';
-    });
+    if (!root._youBound) { // viewEl persists across screens: bind once
+      root._youBound = true;
+      bindSeg(root, async (name, v) => {
+        if (name === 'theme') { await store.setSettings({ theme: v }); applyTheme(); }
+        else if (name === 'motion') { await store.setSettings({ reducedMotion: v }); applyMotion(); }
+        else if (name === 'mode') { await store.setSettings({ advisorMode: v }); await store.setProfile({ advisorMode: v }); toast(`Advisor: ${v}`); }
+      });
+    }
   },
   inputs: {
+    impfile: async (el) => {
+      const file = el.files[0]; if (!file) return;
+      try { const text = await file.text(); const ok = await confirmSheet({ title: 'Replace all data?', message: `Importing “${file.name}” replaces everything currently stored on this device.`, confirm: 'Import', danger: true }); if (!ok) return;
+        const r = await importData(text); toast(`Imported ${Object.values(r.counts).reduce((a, b) => a + b, 0)} records`); } catch (err) { toast(err.message, { tone: 'warn' }); }
+      el.value = '';
+    },
     name: (el) => { clearTimeout(el._t); el._t = setTimeout(() => store.setProfile({ name: el.value.trim() }), 500); },
     qh0: (el) => store.setSettings({ quietHours: [el.value || '22:00', store.settings().quietHours[1]] }),
     qh1: (el) => store.setSettings({ quietHours: [store.settings().quietHours[0], el.value || '07:00'] }),
@@ -186,9 +189,9 @@ function deleteAccountSheet() {
     } });
 }
 async function runTest() {
-  if (testing) return; testing = true; testMsg = ''; navigate('#/you');
+  if (testing) return; testing = true; testMsg = ''; rerender();
   try { const r = await G.testConnection(); testMsg = `OK — connected (model replied “${r}”).`; } catch (e) { testMsg = e instanceof G.AIError ? e.message : 'Could not complete the test.'; }
-  testing = false; navigate('#/you');
+  testing = false; rerender();
 }
 async function movePri(id, dir) {
   const p = store.profile(); const list = [...p.priorities].sort((a, b) => b.weight - a.weight); const i = list.findIndex((x) => x.id === id); const j = i + dir; if (j < 0 || j >= list.length) return;

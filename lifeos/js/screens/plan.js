@@ -2,7 +2,7 @@ import { store } from '../store.js';
 import * as A from '../analytics.js';
 import { h, icon, pct, EVENT_ICON, EVENT_COLOR, levelColor, toast, confirmSheet, logo } from '../ui.js';
 import { fmtDate, fmtTime, fmtDur, dayKey, parseKey, addDays, startOfWeek, startOfDay, round } from '../util.js';
-import { navigate } from '../router.js';
+import { navigate, rerender } from '../router.js';
 import { eventFormSheet, eventDetailSheet, taskFormSheet, commit, searchSheet, notificationsSheet } from '../sheets.js';
 import { exportAllICS } from '../calendar.js';
 import { routineStrip, routineActions } from '../routine-ui.js';
@@ -53,8 +53,8 @@ export default {
   actions: {
     ...routineActions,
     search: () => searchSheet(), bell: () => notificationsSheet(),
-    day: (el) => { sel = el.dataset.k; navigate('#/plan'); },
-    wk: (el) => { sel = dayKey(addDays(parseKey(sel), Number(el.dataset.d))); navigate('#/plan'); },
+    day: (el) => { sel = el.dataset.k; rerender(); },
+    wk: (el) => { sel = dayKey(addDays(parseKey(sel), Number(el.dataset.d))); rerender(); },
     add: () => eventFormSheet({ defaults: { start: (() => { if (sel !== dayKey()) { const d = parseKey(sel); d.setHours(9, 0); return d; } return new Date(Math.ceil((Date.now() + 5 * 60000) / 1800000) * 1800000); })() } }),
     event: (el) => eventDetailSheet(el.dataset.id), ready: (el) => navigate(`#/readiness/${el.dataset.id}`),
     addtask: () => taskFormSheet({}),

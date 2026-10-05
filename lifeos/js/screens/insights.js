@@ -8,7 +8,7 @@ import { syncPatterns } from '../memory.js';
 import { commit } from '../sheets.js';
 import { CORE_SYSTEM, EXPERIMENT } from '../prompts.js';
 import { buildContext } from '../ai-context.js';
-import { navigate } from '../router.js';
+import { navigate, rerender } from '../router.js';
 
 let days = 7; let dayView = 'today'; let busy = '';
 const UNIT = { sleep: 'h', mood: '/10', energy: '/10', stress: '/10', focus: '/10', water: ' ml', workout: ' min' };
@@ -77,10 +77,10 @@ export default {
     if (!cd || (cd.source === 'local' && cd.narrative !== ld.narrative)) store.save('reports', { id: `daily:${dk}`, ...ld, generatedAt: nowISO() }, { silent: true });
   },
   actions: {
-    range: (el) => { days = Number(el.dataset.d); navigate('#/insights'); },
-    dview: (el) => { dayView = el.dataset.v; navigate('#/insights'); },
-    weekly: async () => { busy = 'weekly'; navigate('#/insights'); try { await generateWeekly(undefined, { force: true, useAI: aiReady() }); toast(aiReady() ? 'Weekly story updated' : 'Refreshed'); } catch (e) { toast(describeError(e), { tone: 'warn' }); } busy = ''; navigate('#/insights'); },
-    daily: async () => { busy = 'daily'; navigate('#/insights'); try { await generateDaily(dayView === 'today' ? dayKey() : dayKey(addDays(new Date(), -1)), { force: true, useAI: aiReady() }); } catch (e) { toast(describeError(e), { tone: 'warn' }); } busy = ''; navigate('#/insights'); },
+    range: (el) => { days = Number(el.dataset.d); rerender(); },
+    dview: (el) => { dayView = el.dataset.v; rerender(); },
+    weekly: async () => { busy = 'weekly'; rerender(); try { await generateWeekly(undefined, { force: true, useAI: aiReady() }); toast(aiReady() ? 'Weekly story updated' : 'Refreshed'); } catch (e) { toast(describeError(e), { tone: 'warn' }); } busy = ''; rerender(); },
+    daily: async () => { busy = 'daily'; rerender(); try { await generateDaily(dayView === 'today' ? dayKey() : dayKey(addDays(new Date(), -1)), { force: true, useAI: aiReady() }); } catch (e) { toast(describeError(e), { tone: 'warn' }); } busy = ''; rerender(); },
     export: () => exportWeekly(),
     newexp: () => experimentSheet(),
     finexp: (el) => commit({ type: 'finish_experiment', payload: { id: el.dataset.id } }, { notify: false }),
