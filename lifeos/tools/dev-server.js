@@ -10,9 +10,13 @@ const root = join(fileURLToPath(import.meta.url), '..', '..');
 const port = Number(process.argv[2]) || 8124;
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.md': 'text/markdown' };
 
+let bump = null; // test hook: /__bump?v=2.0.1 simulates a new v2 release (service worker + releases.json change)
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
+    if (url.pathname === '/__bump') { bump = url.searchParams.get('v'); res.end('ok'); return; }
+    if (bump && url.pathname === '/v2/service-worker.js') { const t = (await readFile(join(root, 'v2/service-worker.js'), 'utf8')).replace('lifeos2-v2.0.0', `lifeos2-v${bump}`); res.setHeader('Content-Type', 'text/javascript'); res.setHeader('Cache-Control', 'no-cache'); return res.end(t); }
+    if (url.pathname === '/releases.json') { const j = JSON.parse(await readFile(join(root, 'releases.json'), 'utf8')); if (bump) { j.latest.version = bump; j.latest.title = `LifeOS ${bump}`; j.latest.notes = [{ icon: 'sparkle', title: 'Test feature', text: 'Simulated release for testing.' }]; } res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store'); return res.end(JSON.stringify(j)); }
     if (url.pathname.startsWith('/api/')) {
       const name = url.pathname.slice(5).replace(/[^a-z-]/g, '');
       const mod = await import(pathToFileURL(join(root, 'api', `${name}.js`)).href);

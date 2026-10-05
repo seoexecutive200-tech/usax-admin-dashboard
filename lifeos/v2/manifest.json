@@ -1,0 +1,18 @@
+{
+  "name": "LifeOS 2",
+  "short_name": "LifeOS",
+  "description": "Build your own personal system: describe what you want to track and LifeOS sets it up.",
+  "id": "./",
+  "start_url": "./index.html#/today",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D1118",
+  "theme_color": "#0D1118",
+  "categories": ["health", "lifestyle", "productivity"],
+  "icons": [
+    { "src": "../assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

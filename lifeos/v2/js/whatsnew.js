@@ -1,0 +1,12 @@
+// Single source of truth for "what's new in LifeOS 2" (also mirrored into releases.json for the update card).
+export const WHATS_NEW = [
+  { icon: 'sparkle', title: 'Describe it, and it builds itself', text: 'Tell LifeOS what you want to track in your own words. It designs the tracker — fields, targets, reminders — and you review it before anything is saved.' },
+  { icon: 'target', title: 'Track anything', text: 'Numbers, scales, yes/no, choices, durations and notes, with daily totals, targets, streaks and charts that fit what you defined.' },
+  { icon: 'send', title: 'Type anything, it goes to the right place', text: '“Ran 8k, left knee sore” is sorted into the right trackers automatically, with a quick check when unsure.' },
+  { icon: 'flag', title: 'Your own rules', text: 'Write a rule in a sentence — “if I sleep under 6 hours twice this week, tell me to keep the evening free” — and LifeOS watches for it.' },
+  { icon: 'chart', title: 'Ask your own questions', text: 'Pick any two things you track and see how they relate, with honest confidence — never a made-up cause.' },
+  { icon: 'home', title: 'A Today that’s yours', text: 'Pin the trackers you care about to Today, or switch to a blank canvas with none of the built-in sleep, mood and routine suggestions.' },
+  { icon: 'users', title: 'Templates and CSV', text: 'Start from a template, share your setup with a friend (no data included), and import your history from a spreadsheet.' },
+  { icon: 'brain', title: 'AI included', text: 'Sign in and the advisor works without pasting a key (daily limit). Your own key still works and takes priority.' },
+  { icon: 'download', title: 'Safer updates', text: 'Updates now ask first, show what changed, save your data, and never touch your original LifeOS data.' },
+];

@@ -277,6 +277,15 @@ html[data-motion="reduced"] .sheet-wrap .sheet { transform: translateY(100%); } 
 /* background refreshes swap content without replaying intro animations */
 #view.silent, #view.silent *, #view.silent *::before, #view.silent *::after { animation: none !important; }
 
-/* update notifier */
-.update-chip { flex-direction: row; align-items: center; gap: 12px; cursor: pointer; border-color: rgba(59, 130, 246, .4); background: var(--blue-soft); }
-.whatsnew { display: flex; gap: 12px; align-items: flex-start; }
+/* LifeOS 2: trackers, rules, updates */
+.tcard { cursor: pointer; gap: 10px; transition: transform .1s var(--ease); } .tcard:active { transform: scale(.985); } .tcard .t-ic { background: var(--surface2); }
+.tspark { margin-top: -2px; } .big-ic { width: 64px; height: 64px; border-radius: 20px; }
+.creator { background: linear-gradient(140deg, rgba(60, 50, 130, .45), var(--surface) 75%); border-color: rgba(124, 92, 252, .3); }
+:root[data-theme="light"] .creator { background: linear-gradient(140deg, #f0ecff, #fff 75%); }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; } .swatch { width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent; padding: 0; } .swatch.on { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg) inset; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; } .stats > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .stats b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; text-align: left; min-height: 48px; padding: 4px 0; color: inherit; }
+.tpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .tpl-grid .list-btn { min-height: 64px; padding: 10px; } @media (max-width: 360px) { .tpl-grid { grid-template-columns: 1fr; } }
+.slider.untouched input { opacity: .5; } .qk { margin-top: 8px; }
+.switch { position: relative; width: 52px; height: 32px; flex: none; display: inline-block; } .switch input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; } .switch i { position: absolute; inset: 4px 0; border-radius: 16px; background: var(--line2); transition: background .2s; } .switch i::after { content: ""; position: absolute; top: 2px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease); } .switch input:checked + i { background: var(--blue); } .switch input:checked + i::after { transform: translateX(22px); }
+.fld .grid2, .fld .field { min-width: 0; }

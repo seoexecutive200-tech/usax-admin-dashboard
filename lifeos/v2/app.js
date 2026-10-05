@@ -1,9 +1,9 @@
-// LifeOS V1 — app shell: boot, routing, onboarding, reminders, service worker.
+// LifeOS 2 — app shell: boot, migration from v1, routing, onboarding, reminders, updates.
 import { store } from './js/store.js';
 import { register, registerActions, initRouter, render, refresh, navigate } from './js/router.js';
 import { applyMotion, applyTheme, toast, icon, html, h } from './js/ui.js';
 import * as adv from './js/advisor.js';
-import { aiReady } from './js/groq.js';
+import { aiReady, initHosted } from './js/groq.js';
 import { gapDays } from './js/analytics.js';
 import { syncPatterns } from './js/memory.js';
 import today, { setBanners } from './js/screens/today.js';
@@ -11,34 +11,40 @@ import plan from './js/screens/plan.js';
 import capture from './js/screens/capture.js';
 import insights from './js/screens/insights.js';
 import you from './js/screens/you.js';
+import trackers from './js/screens/trackers.js';
+import tracker from './js/screens/tracker.js';
+import { watchUpdates } from './js/updates.js';
+import { tourSheet } from './js/tour.js';
+import { builderSheet } from './js/tracker-ui.js';
+import { lsSet } from './js/util.js';
 import readiness from './js/screens/readiness.js';
 import { showOnboarding } from './js/screens/onboarding.js';
-import { isPersistent, setDbName, readAllFrom, DB_NAME } from './js/db.js';
-import { detect, dbNameFor } from './js/account.js';
+import { isPersistent, setDbName, readAllFrom, DB_NAME, V1_DB_NAME } from './js/db.js';
+import { detect, dbNameFor, v1DbNameFor } from './js/account.js';
 import { startSync, onSyncChange, sync } from './js/sync.js';
 import { showAuth } from './js/screens/auth.js';
 import { startRoutineLoop, prune as pruneRoutines } from './js/routines.js';
-import { lsGet } from './js/util.js';
-import { checkForUpdate, maybeShowUpdate } from './js/updates.js';
 
 async function boot() {
-  // Launcher: once a user has updated (and the new version has started successfully before), open it directly.
-  if (lsGet('lifeos.channel') === 'v2' && lsGet('lifeos.v2ok')) { location.replace(new URL(`v2/${location.hash}`, document.baseURI)); return; }
   // 1. Who is using the app? (signed in / needs to sign in / local-only because the host has no accounts)
   const who = await detect();
   let user = null; let isNew = false; let regName = ''; let legacy = null;
   if (who.state === 'anon') { document.getElementById('boot')?.remove(); const r = await showAuth(); user = r.user; isNew = r.isNew; regName = r.name; }
   else if (who.state === 'user') user = who.user;
   if (user) {
-    if (isNew) legacy = await readAllFrom(DB_NAME); // data created before accounts existed on this device
+    legacy = await readAllFrom(v1DbNameFor(user)) || (isNew ? await readAllFrom(V1_DB_NAME) : null); // read-only copy source: the original LifeOS database
     setDbName(dbNameFor(user)); // every account gets its own local database
   }
+  if (!user) legacy = await readAllFrom(V1_DB_NAME); // local-only device: original LifeOS data
   await store.init();
-  if (isNew) {
+  let migrated = false;
+  {
     const hasLegacy = legacy && ['logs', 'events', 'tasks', 'goals', 'memories'].some((n) => (legacy[n] || []).length) && legacy.profiles?.some((p) => p.onboarded);
-    if (hasLegacy) { await store.replaceAll(legacy); setTimeout(() => toast('Your existing data on this device was added to your new account.', { duration: 6000 }), 800); }
+    // First run of LifeOS 2: COPY the user's original data across (the original database is only read, never changed).
+    if (hasLegacy && !store.profile().onboarded) { await store.replaceAll(legacy); migrated = true; await store.setSettings({ introSeen: false }); }
     if (regName && !store.profile().name) await store.setProfile({ name: regName });
   }
+  if (user) await initHosted(); // is hosted AI available for this account?
   if (user) {
     window.__account = user;
     await startSync(user.id); // initial pull happens before onboarding so returning users keep their data (offline: resolves quickly)
@@ -55,7 +61,7 @@ async function boot() {
     <button class="nav-btn" data-route="insights">${icon('chart', 24)}<span>Insights</span></button>
     <button class="nav-btn" data-route="you">${icon('user', 24)}<span>You</span></button>`);
 
-  [today, plan, capture, insights, you, readiness].forEach((s) => register(s.id, s));
+  [today, plan, capture, insights, you, readiness, trackers, tracker].forEach((s) => register(s.id, s));
   initRouter({ view: document.getElementById('view'), nav: document.getElementById('nav') });
 
   if (!store.profile().onboarded) { document.getElementById('boot')?.remove(); await showOnboarding(); }
@@ -80,12 +86,14 @@ async function boot() {
   navigator.storage?.persist?.().catch(() => {});
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('service-worker.js').catch(() => {});
   document.getElementById('boot')?.remove();
-  // Offer a newer version (never applied without the user's say-so).
-  setTimeout(async () => { const rel = await checkForUpdate(); if (rel) { refresh(); maybeShowUpdate(rel); } }, 2500);
+  lsSet('lifeos.v2ok', String(Date.now())); // the original LifeOS may now open this version directly
+  watchUpdates();
+  if (store.settings().mode === 'custom' && !store.all('trackers').length) setTimeout(() => builderSheet(), 700);
+  else if (!store.settings().introSeen && store.profile().onboarded) setTimeout(() => tourSheet(), 900);
 }
 boot().catch((e) => {
   console.error('LifeOS failed to start:', e?.message);
   let b = document.getElementById('boot');
   if (!b) { b = document.createElement('div'); b.id = 'boot'; document.body.appendChild(b); }
-  b.innerHTML = `<p>LifeOS couldn’t start: ${String(e?.message).replace(/</g, '&lt;')}</p><button class="btn btn-primary" onclick="location.reload()">Reload</button>`;
+  b.innerHTML = `<p>LifeOS 2 couldn’t start: ${String(e?.message).replace(/</g, '&lt;')}</p><p><a href="../index.html" id="goback" style="color:#8ab4ff">Open the original LifeOS</a></p>`; document.getElementById('goback')?.addEventListener('click', () => { try { localStorage.setItem('lifeos.channel', 'v1'); } catch { /* ignore */ } });
 });

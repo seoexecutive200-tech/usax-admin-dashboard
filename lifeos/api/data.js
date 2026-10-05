@@ -2,6 +2,7 @@
 // PUT  /api/data {stores, ifMatch?}  -> { etag }   (409 on revision conflict)
 import { send, readBody, checkOrigin, storageConfigured, sessionUser, readJSON, writeJSON, dataKey, scrubKeys } from './_lib.js';
 
+const STORES_V2_EXTRA = ['trackers', 'entries', 'rules'];
 const STORES = ['profiles', 'settings', 'activities', 'logs', 'events', 'tasks', 'goals', 'memories', 'advisorItems', 'reports', 'experiments', 'finance'];
 const MAX_BYTES = 3_500_000; // Vercel function body limit is 4.5 MB
 
@@ -11,7 +12,10 @@ export default async function handler(req, res) {
     if (!checkOrigin(req)) return send(res, 403, { error: 'Request blocked' });
     const s = await sessionUser(req);
     if (!s) return send(res, 401, { error: 'Please log in again.' });
-    const key = dataKey(s.user.id);
+    // v1 (default) and v2 keep separate cloud copies, so the original version's data is never touched by the new one.
+    const v2 = new URL(req.url, 'http://x').searchParams.get('v') === '2';
+    const key = v2 ? dataKey(`${s.user.id}.v2`) : dataKey(s.user.id);
+    const names = v2 ? [...STORES, ...STORES_V2_EXTRA] : STORES;
 
     if (req.method === 'GET') {
       const rec = await readJSON(key);
@@ -22,7 +26,7 @@ export default async function handler(req, res) {
       const body = await readBody(req, MAX_BYTES);
       if (!body.stores || typeof body.stores !== 'object' || Array.isArray(body.stores)) return send(res, 400, { error: 'Invalid data' });
       const stores = {};
-      for (const n of STORES) {
+      for (const n of names) {
         const arr = body.stores[n] ?? [];
         if (!Array.isArray(arr) || arr.some((r) => !r || typeof r.id !== 'string')) return send(res, 400, { error: `Invalid ${n}` });
         stores[n] = arr;
