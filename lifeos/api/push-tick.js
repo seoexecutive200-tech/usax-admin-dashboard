@@ -8,10 +8,11 @@ const ok = (got, want) => { const a = Buffer.from(got), b = Buffer.from(want); r
 
 export default async function handler(req, res) {
   try {
-    const secret = process.env.PUSH_CRON_SECRET || process.env.CRON_SECRET || '';
-    if (secret.length < 16) return send(res, 503, { error: 'PUSH_CRON_SECRET is not configured' });
+    // Vercel Cron sends CRON_SECRET; external schedulers (GitHub Actions, cron-job.org) send PUSH_CRON_SECRET. Either one works.
+    const secrets = [process.env.PUSH_CRON_SECRET, process.env.CRON_SECRET].filter((x) => x && x.length >= 16);
+    if (!secrets.length) return send(res, 503, { error: 'PUSH_CRON_SECRET is not configured' });
     const auth = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-    if (!auth || !ok(auth, secret)) return send(res, 401, { error: 'Unauthorized' });
+    if (!auth || !secrets.some((s) => ok(auth, s))) return send(res, 401, { error: 'Unauthorized' });
     if (!vapidReady() || !storageConfigured()) return send(res, 503, { error: 'Push is not configured' });
     const started = Date.now(); let users = 0, sent = 0;
     for (const key of await listKeys('push/')) {
