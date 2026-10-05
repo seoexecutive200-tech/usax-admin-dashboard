@@ -6,6 +6,7 @@ import { api } from './account.js';
 import { dayKey, addDays, lsGet, lsSet, lsDel } from './util.js';
 import * as R from './routines.js';
 import * as T from './trackers.js';
+import * as F from './focus.js';
 
 const FLAG = 'lifeos.push2'; // per device: this browser has background reminders on
 const HORIZON_MS = 70 * 3600 * 1000;
@@ -75,7 +76,10 @@ const hm = (s) => { const [h, m] = String(s || '0:0').split(':').map(Number); re
 
 export function buildJobs(now = new Date()) {
   const quiet = store.settings().quietHours || ['22:00', '07:00']; const horizon = +now + HORIZON_MS; const jobs = [];
-  const add = (j) => { const at = j.at instanceof Date ? j.at : new Date(j.at); if (+at <= +now + 20000 || +at > horizon || inQuiet(at, quiet)) return; jobs.push({ ...j, at: +at }); };
+  // A running focus session: schedule its end, and hold other reminders until it's over (they return when the session stops).
+  const fz = F.active(); const fzEnd = fz?.planned && !fz.pausedAt ? +now + F.remainingMs(+now) : null; const hold = fz?.quiet && !fz.pausedAt ? (fzEnd ?? +now + 12 * 3600000) : 0;
+  const add = (j) => { const at = j.at instanceof Date ? j.at : new Date(j.at); const own = String(j.id).startsWith('focus:'); if (+at <= +now + 20000 || +at > horizon || (!own && (inQuiet(at, quiet) || +at < hold))) return; jobs.push({ ...j, at: +at }); };
+  if (fz && fzEnd) add({ id: `focus:${fz.id}:end`, at: fzEnd, title: 'Focus complete', body: fz.label ? `Nice work on “${fz.label}”.` : 'Session finished — time for a break.', url: './index.html#/today' });
   for (let i = 0; i < 4; i++) {
     const date = addDays(now, i); const key = dayKey(date);
     for (const r of R.activeRoutines()) {
@@ -107,6 +111,7 @@ export const schedule = () => { if (!timer) timer = setTimeout(() => { timer = n
 function hook() {
   if (hooked) return; hooked = true;
   store.on(() => { if (lsGet(FLAG) === '1') schedule(); });
+  document.addEventListener('lifeos:focus', () => { if (lsGet(FLAG) === '1') schedule(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && lsGet(FLAG) === '1') { lastSig = ''; schedule(); } });
   window.addEventListener('online', () => { if (lsGet(FLAG) === '1') schedule(); });
 }

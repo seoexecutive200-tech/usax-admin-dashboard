@@ -115,7 +115,9 @@ let lastSig = '';
 export async function wasPushed(tag) {
   try { return !!(tag && 'caches' in window && await caches.match(new URL(`__pushed/${encodeURIComponent(tag)}`, document.baseURI), { cacheName: 'pushed-ids' })); } catch { return false; }
 }
+const focusQuiet = () => { const f = safeJSON(lsGet('lifeos.focus2'), null); return !!(f && f.quiet && !f.pausedAt); };
 export async function notify(title, body, tag) {
+  if (focusQuiet() && !String(tag || '').startsWith('focus:')) return; // reminders stay quiet during a focus session
   if (await wasPushed(tag)) return; // already delivered by the server while the app was closed
   if (!store.settings().notifications || !('Notification' in window) || Notification.permission !== 'granted') return;
   try {

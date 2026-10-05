@@ -13,6 +13,8 @@ import insights from './js/screens/insights.js';
 import you from './js/screens/you.js';
 import trackers from './js/screens/trackers.js';
 import tracker from './js/screens/tracker.js';
+import calendar from './js/screens/calendar.js';
+import { mountFocusPill } from './js/focus-ui.js';
 import { watchUpdates } from './js/updates.js';
 import { tourSheet } from './js/tour.js';
 import { builderSheet } from './js/tracker-ui.js';
@@ -62,7 +64,7 @@ async function boot() {
     <button class="nav-btn" data-route="insights">${icon('chart', 24)}<span>Insights</span></button>
     <button class="nav-btn" data-route="you">${icon('user', 24)}<span>You</span></button>`);
 
-  [today, plan, capture, insights, you, readiness, trackers, tracker].forEach((s) => register(s.id, s));
+  [today, plan, capture, insights, you, readiness, trackers, tracker, calendar].forEach((s) => register(s.id, s));
   initRouter({ view: document.getElementById('view'), nav: document.getElementById('nav') });
 
   if (!store.profile().onboarded) { document.getElementById('boot')?.remove(); await showOnboarding(); }
@@ -89,6 +91,7 @@ async function boot() {
   document.getElementById('boot')?.remove();
   lsSet('lifeos.v2ok', String(Date.now())); // the original LifeOS may now open this version directly
   watchUpdates();
+  mountFocusPill(); // the focus timer pill + finishing sessions that ended while the app was closed
   initPush(); // re-attaches background reminders if they're on for this device
   if (store.settings().mode === 'custom' && !store.all('trackers').length) setTimeout(() => builderSheet(), 700);
   else if (!store.settings().introSeen && store.profile().onboarded) setTimeout(() => tourSheet(), 900);

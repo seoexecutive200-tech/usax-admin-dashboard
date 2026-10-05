@@ -6,6 +6,7 @@ import { navigate, rerender } from '../router.js';
 import { eventFormSheet, eventDetailSheet, taskFormSheet, commit, searchSheet, notificationsSheet } from '../sheets.js';
 import { exportAllICS } from '../calendar.js';
 import { routineStrip, routineActions } from '../routine-ui.js';
+import { focusStartSheet } from '../focus-ui.js';
 
 let sel = dayKey();
 
@@ -31,7 +32,7 @@ export default {
     const maxV = Math.max(0.5, ...fl.map((d) => d.value));
     return h`<div class="screen plan">
       <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
-      <div class="hero"><h1>Plan</h1><p class="muted">${fmtDate(now)}</p></div>
+      <div class="hero"><h1>Plan</h1><p class="muted">${fmtDate(now)}</p><div class="seg" role="group" aria-label="View"><button class="seg-btn on" aria-pressed="true">Week</button><button class="seg-btn" data-act="to-month">Month</button></div></div>
       <div class="week" role="tablist" aria-label="Week">
         <button class="icon-btn" data-act="wk" data-d="-7" aria-label="Previous week">${icon('chevronL', 18)}</button>
         <div class="week-days">${week.map((d) => { const k = dayKey(d); const l = A.loadLevel(A.loadForDay(k)); const has = A.eventsOnDay(k).length; return h`<button class="day ${k === sel ? 'sel' : ''} ${k === dayKey() ? 'today' : ''}" role="tab" aria-selected="${k === sel}" data-act="day" data-k="${k}"><small>${fmtDate(d, { weekday: 'short' })}</small><b>${d.getDate()}</b><i class="dot" style="background:${has ? levelColor(l) : 'var(--line)'}"></i></button>`; })}</div>
@@ -45,7 +46,7 @@ export default {
       </section>
       <section><div class="sec-h"><h2>Tasks</h2><button class="btn btn-sm btn-outline" data-act="addtask">${icon('plus', 16)} Add task</button></div>
         ${tasks.length || doneTasks.length ? h`<ul class="tasks">${[...tasks, ...doneTasks].map((t) => h`<li class="task ${t.status === 'done' ? 'done' : ''}"><button class="check-btn ${t.status === 'done' ? 'on' : ''}" data-act="tdone" data-id="${t.id}" aria-label="${t.status === 'done' ? 'Mark not done' : 'Mark done'}">${t.status === 'done' ? icon('check', 16) : ''}</button><span class="grow"><b>${t.title}</b>${t.due ? h`<small class="muted">Due ${fmtDate(t.due, { weekday: 'short', day: 'numeric', month: 'short' })} ${fmtTime(t.due)}</small>` : ''}${t.origin === 'ai' ? h` <span class="pill pill-ai">AI suggested</span>` : ''}</span>
-          <button class="icon-btn" data-act="tresched" data-id="${t.id}" aria-label="Move to tomorrow" title="Move to tomorrow">${icon('repeat', 18)}</button><button class="icon-btn" data-act="tedit" data-id="${t.id}" aria-label="Edit task">${icon('edit', 18)}</button><button class="icon-btn" data-act="tdel" data-id="${t.id}" aria-label="Delete task">${icon('trash', 18)}</button></li>`)}</ul>` : h`<div class="empty"><p>No tasks yet.</p></div>`}
+          <button class="icon-btn" data-act="tfocus" data-id="${t.id}" aria-label="Focus on this task" title="Focus on this">${icon('target', 18)}</button><button class="icon-btn" data-act="tresched" data-id="${t.id}" aria-label="Move to tomorrow" title="Move to tomorrow">${icon('repeat', 18)}</button><button class="icon-btn" data-act="tedit" data-id="${t.id}" aria-label="Edit task">${icon('edit', 18)}</button><button class="icon-btn" data-act="tdel" data-id="${t.id}" aria-label="Delete task">${icon('trash', 18)}</button></li>`)}</ul>` : h`<div class="empty"><p>No tasks yet.</p></div>`}
       </section>
       ${ne ? h`<button class="card coming" data-act="ready" data-id="${ne.id}"><span class="date-tile"><small>${fmtDate(ne.start, { weekday: 'short' }).toUpperCase()}</small><b>${new Date(ne.start).getDate()}</b></span><span class="grow"><small class="muted">Upcoming</small><b>${ne.title}</b><small class="muted">${fmtTime(ne.start)} · ${fmtDur((new Date(ne.end) - new Date(ne.start)) / 60000)}</small></span><span class="rd"><small>Readiness</small><b>${pct(r.overall)}</b></span>${ring2(r.overall)}${icon('chevron', 16, 'muted')}</button>` : ''}
       <div class="row center"><button class="link" data-act="ics">${icon('download', 14)} Export schedule (.ics)</button></div></div>`;
@@ -57,6 +58,7 @@ export default {
     wk: (el) => { sel = dayKey(addDays(parseKey(sel), Number(el.dataset.d))); rerender(); },
     add: () => eventFormSheet({ defaults: { start: (() => { if (sel !== dayKey()) { const d = parseKey(sel); d.setHours(9, 0); return d; } return new Date(Math.ceil((Date.now() + 5 * 60000) / 1800000) * 1800000); })() } }),
     event: (el) => eventDetailSheet(el.dataset.id), ready: (el) => navigate(`#/readiness/${el.dataset.id}`),
+    'to-month': () => navigate('#/calendar'), tfocus: (el) => { const t = store.get('tasks', el.dataset.id); focusStartSheet({ label: t?.title || '', taskId: t?.id || null }); },
     addtask: () => taskFormSheet({}),
     tdone: async (el) => { const t = store.get('tasks', el.dataset.id); const prev = t.status; await store.save('tasks', { id: t.id, status: prev === 'done' ? 'open' : 'done' }); if (prev !== 'done') toast('Task done', { undo: () => store.save('tasks', { id: t.id, status: 'open' }) }); },
     tedit: (el) => taskFormSheet({ task: store.get('tasks', el.dataset.id) }),

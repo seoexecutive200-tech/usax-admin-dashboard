@@ -12,6 +12,7 @@ import * as T from '../trackers.js';
 import { trackerCard, entrySheet, quickLog, builderSheet } from '../tracker-ui.js';
 import { updateReady, showUpdate, releaseNotes } from '../updates.js';
 import { todayLayout, customizeTodaySheet } from '../today-layout.js';
+import { timerCard, focusStartSheet, focusSheet } from '../focus-ui.js';
 
 let banners = [];
 export const setBanners = (b) => { banners = b; };
@@ -82,6 +83,7 @@ export default {
         ${cap.estimated.energy ? h`<p class="tiny muted">Energy is estimated from your baseline until you log it.</p>` : ''}
       </section>`,
       routine: () => routineCards(now),
+      timer: () => timerCard(),
       advisor: () => advisorCard(item),
       focus: () => focusCard(cap),
       trackers: () => trackersSection(),
@@ -108,7 +110,7 @@ export default {
   },
   actions: {
     ...routineActions,
-    upd: () => showUpdate(), 'customize-today': () => customizeTodaySheet(),
+    upd: () => showUpdate(), 'customize-today': () => customizeTodaySheet(), 'focus-start': () => focusStartSheet(), 'focus-open': () => focusSheet(),
     'trk-hub': () => navigate('#/trackers'), 'trk-new': () => builderSheet(), 'trk-open': (el) => navigate(`#/tracker/${el.dataset.id}`),
     'trk-log': (el) => entrySheet(store.get('trackers', el.dataset.id)), 'trk-quick': (el) => quickLog(el.dataset.id, el.dataset.f, el.dataset.v),
     'trk-pin': async (el) => { const t = store.get('trackers', el.dataset.id); await store.save('trackers', { id: t.id, pinned: !t.pinned }); },

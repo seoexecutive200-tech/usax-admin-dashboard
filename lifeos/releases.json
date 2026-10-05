@@ -1,11 +1,23 @@
 {
   "latest": {
-    "version": "2.3.1",
+    "version": "2.4.0",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.3.1",
-    "summary": "Background reminders: a visible reminder-clock status, and no duplicate pop-ups when you open the app.",
+    "title": "LifeOS 2.4",
+    "summary": "A focus timer, and a month calendar that shows everything and lets you create tasks, trackers and reminders from any item.",
     "notes": [
+      {
+        "since": "2.4.0",
+        "icon": "target",
+        "title": "Focus timer",
+        "text": "Turn focus on when you need to concentrate. Pick a length (or open-ended), keep reminders quiet, and get a notification when time is up. Sessions are saved and can feed a “Focus time” tracker."
+      },
+      {
+        "since": "2.4.0",
+        "icon": "calendar",
+        "title": "Month calendar with everything",
+        "text": "Plan → Month shows events, tasks, routines, tracker reminders, focus sessions and goal dates in one place. Tap anything to turn it into a task, a tracker, a reminder, a focus session or an event."
+      },
       {
         "since": "2.3.1",
         "icon": "bell",

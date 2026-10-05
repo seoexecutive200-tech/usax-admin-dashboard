@@ -131,11 +131,11 @@ export function eventDetailSheet(id) {
 }
 
 // ---------- tasks ----------
-export function taskFormSheet({ task = null } = {}) {
+export function taskFormSheet({ task = null, defaults = {} } = {}) {
   openSheet({
     title: task ? 'Edit task' : 'New task',
-    body: h`<form class="stack" id="t-form">${field('Task', h`<input class="input" name="title" maxlength="160" required value="${task?.title || ''}" autofocus>`)}
-      ${field('Due (optional)', h`<input class="input" type="datetime-local" name="due" value="${task?.due ? toLocalInput(task.due) : ''}">`)}
+    body: h`<form class="stack" id="t-form">${field('Task', h`<input class="input" name="title" maxlength="160" required value="${task?.title || defaults.title || ''}" autofocus>`)}
+      ${field('Due (optional)', h`<input class="input" type="datetime-local" name="due" value="${task?.due || defaults.due ? toLocalInput(task?.due || defaults.due) : ''}">`)}
       <p class="form-error" id="t-err" role="alert"></p><div class="row gap end"><button type="button" class="btn" data-x>Cancel</button><button class="btn btn-primary" type="submit">Save</button></div></form>`,
     onOpen(s) {
       s.el.querySelector('[data-x]').onclick = s.close;

@@ -37,7 +37,7 @@ export function render(animate = false) {
   if (animate || changed) { viewEl.style.animation = 'none'; void viewEl.offsetWidth; viewEl.style.animation = ''; }
   screen.mount?.(viewEl, params);
   currentName = name;
-  $$('.nav-btn', navEl).forEach((b) => { const on = b.dataset.route === (name === 'readiness' ? 'today' : name); b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+  $$('.nav-btn', navEl).forEach((b) => { const on = b.dataset.route === ({ readiness: 'today', calendar: 'plan' }[name] || name); b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false'); });
   navEl.classList.toggle('hidden', name === 'capture');
   document.body.dataset.screen = name;
   window.scrollTo({ top: changed && !scrollPos[name] ? 0 : scroll, behavior: 'instant' });
