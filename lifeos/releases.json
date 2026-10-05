@@ -1,11 +1,17 @@
 {
   "latest": {
-    "version": "2.0.0",
+    "version": "2.1.0",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2",
-    "summary": "Build your own system: describe what you want to track and LifeOS sets it up.",
+    "title": "LifeOS 2.1",
+    "summary": "Reminders now reach you even when LifeOS is closed.",
     "notes": [
+      {
+        "since": "2.1.0",
+        "icon": "bell",
+        "title": "Reminders even when LifeOS is closed",
+        "text": "Turn on background reminders in You and your water, break and lunch nudges and tracker reminders arrive as notifications while the app is closed. Quiet hours are respected; only reminder text is sent."
+      },
       {
         "icon": "sparkle",
         "title": "Describe it, and it builds itself",

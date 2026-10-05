@@ -16,6 +16,7 @@ import { allRules, ruleListHTML, bindRuleList, newRuleSheet } from '../rules-ui.
 import { builderSheet, editorSheet, readTemplateFile } from '../tracker-ui.js';
 import { checkNow, switchToV1, version, showUpdate, updateReady } from '../updates.js';
 import { tourSheet } from '../tour.js';
+import * as P from '../push.js';
 import { sync, flush, syncNow, hasPending, clearSyncState, stopSync } from '../sync.js';
 import { forgetUser, logoutRequest, deleteAccountRequest } from '../account.js';
 
@@ -43,6 +44,15 @@ function versionCard() {
     <div class="row gap wrap"><button class="btn btn-sm" data-act="v-check">${icon('refresh', 14)} Check for updates</button><button class="btn btn-sm" data-act="v-new">What’s new</button><button class="btn btn-sm btn-danger-ghost" data-act="v-back">Switch back to LifeOS 1</button></div>
     <p class="tiny muted">LifeOS 1 and its data are kept untouched, so you can return to it any time. Changes you make in LifeOS 2 won’t appear there.</p></section>`;
 }
+function pushCard() {
+  const st = P.state; const busy = pushBusy;
+  const line = !st.loaded ? 'Checking…' : !st.supported ? st.reason : !st.available ? 'Not switched on for this server yet — the site owner needs to add push keys.' : st.permission === 'denied' ? 'Notifications are blocked for this site. Allow them in your browser or phone settings.' : st.on ? `On for this device${st.devices > 1 ? ` · ${st.devices} devices` : ''}. Reminders arrive even when LifeOS is closed.` : 'Off. Turn it on to get reminders when LifeOS is closed.';
+  return h`<section class="card"><div class="row between center"><div class="eyebrow">Background reminders</div><span class="status ${st.on ? 'ok' : ''}"><i></i>${st.on ? 'On' : 'Off'}</span></div>
+    <p class="small">${line}</p>
+    ${st.supported && st.available ? h`<div class="row gap wrap">${st.on ? h`<button class="btn btn-sm" data-act="push-test" ${busy ? 'disabled' : ''}>Send a test</button><button class="btn btn-sm btn-danger-ghost" data-act="push-off" ${busy ? 'disabled' : ''}>Turn off</button>` : h`<button class="btn btn-sm btn-primary" data-act="push-on" ${busy ? 'disabled' : ''}>${busy ? 'Turning on…' : 'Turn on'}</button>`}</div>` : ''}
+    <p class="tiny muted">Covers your daily-routine nudges and tracker reminders. Quiet hours (above) are respected. Only the reminder text and time are sent to our server — not your entries. Rules and “Logged in” still need you to open the app.</p></section>`;
+}
+let pushBusy = false;
 function accountCard() {
   const u = window.__account;
   if (!u) return h`<section class="card acct"><div class="eyebrow">Account</div><p class="small muted">This LifeOS host doesn’t have accounts enabled, so your data is saved only on this device. Use Export to back it up.</p></section>`;
@@ -66,6 +76,7 @@ export default {
       <header class="top">${logo()}<span></span></header><div class="hero"><h1>You</h1><p class="muted">Your profile, priorities, memory and settings. Everything stays on this device.</p></div>
       ${accountCard()}
       ${v2Cards(s)}
+      ${pushCard()}
       <section class="card"><div class="eyebrow">Profile</div>${field('Name', h`<input class="input" data-input="name" value="${p.name}" maxlength="40" placeholder="What should I call you?">`)}
         <div class="field"><span class="field-label">Appearance</span>${seg('theme', [['dark', 'Dark'], ['light', 'Light'], ['system', 'System']], s.theme)}</div>
         <div class="field"><span class="field-label">Reduce motion</span>${seg('motion', [['auto', 'Auto'], ['on', 'On'], ['off', 'Off']], s.reducedMotion)}</div>
@@ -106,6 +117,7 @@ export default {
       <p class="center muted tiny">LifeOS 2 · local-first · estimates, not medical advice</p></div>`;
   },
   mount(root) {
+    if (P.statusStale()) P.refreshStatus().then((changed) => { if (changed && document.body.dataset.screen === 'you') rerender(); });
     if (!root._youBound) { // viewEl persists across screens: bind once
       root._youBound = true; bindRuleList(root, () => rerender());
       bindSeg(root, async (name, v) => {
@@ -139,6 +151,9 @@ export default {
   actions: {
     'trk-new': () => builderSheet(), 'trk-hub': () => navigate('#/trackers'), 'rule-new': () => newRuleSheet({ onSaved: () => rerender() }),
     'v-check': async () => { toast('Checking…'); const r = await checkNow(); toast(r === 'ready' ? 'An update is ready' : r === 'current' ? 'You’re up to date' : 'Couldn’t check right now', { tone: r === 'error' ? 'warn' : '' }); rerender(); },
+    'push-on': async () => { pushBusy = true; rerender(); try { await P.enable(); toast('Background reminders are on'); } catch (e) { toast(e.message || 'Couldn’t turn on', { tone: 'warn', duration: 7000 }); } pushBusy = false; rerender(); },
+    'push-off': async () => { pushBusy = true; rerender(); await P.disable(); pushBusy = false; toast('Background reminders are off'); rerender(); },
+    'push-test': async () => { try { await P.sendTest(); toast('Test sent — it should arrive in a few seconds'); } catch (e) { toast(e.message || 'Test failed', { tone: 'warn' }); } },
     'v-update': () => showUpdate(), 'v-new': () => tourSheet(),
     'v-back': async () => { if (await confirmSheet({ title: 'Switch back to LifeOS 1?', message: 'Your original LifeOS and its data are untouched. Anything you add in LifeOS 2 (trackers, rules) will not be there. You can return here any time.', confirm: 'Switch back' })) switchToV1(); },
     // memory controls

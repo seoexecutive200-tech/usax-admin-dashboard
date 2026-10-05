@@ -31,7 +31,7 @@ export function statusFor(r, key) {
 export const setStatus = (r, key, status) => store.save('activities', { id: markId(r.id, key), kind: 'routine_mark', routineId: r.id, date: key, status, enabled: false });
 
 // ---- nudges ----
-const ackOf = (key) => store.get('activities', `ack_${key}`);
+export const ackOf = (key) => store.get('activities', `ack_${key}`);
 export const ack = (key, action, extra = {}) => store.save('activities', { id: `ack_${key}`, kind: 'nudge_ack', key, action, enabled: false, at: new Date().toISOString(), ...extra });
 const STALE = { water: 45, break: 60, lunch: 90, eyes: 20, wrap: 45, end: 180 };
 export const NUDGE_META = {

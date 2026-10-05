@@ -5,7 +5,8 @@
   "description": "LifeOS V1 static PWA - no build step",
   "version": "1.0.0",
   "dependencies": {
-    "@vercel/blob": "^2.8.0"
+    "@vercel/blob": "^2.8.0",
+    "web-push": "^3.6.7"
   },
   "scripts": {
     "dev": "LIFEOS_DEV=1 node tools/dev-server.js"

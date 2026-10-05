@@ -1,7 +1,7 @@
 // Shared server helpers for LifeOS accounts. Plain Node (req, res) handlers so they run on Vercel and in tools/dev-server.js.
 import { createHash, createHmac, randomBytes, scrypt as _scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 
 const scrypt = promisify(_scrypt);
@@ -52,6 +52,16 @@ export async function writeJSON(pathname, value, { create = false, ifMatch = nul
 export async function removeBlob(pathname) {
   if (useBlob()) { const { del } = await blobSdk(); await del(pathname); return; }
   await rm(devPath(pathname), { force: true });
+}
+
+/** Pathnames under a prefix (e.g. 'push/'). */
+export async function listKeys(prefix) {
+  if (useBlob()) {
+    const { list } = await blobSdk(); const out = []; let cursor;
+    do { const r = await list({ prefix, cursor, limit: 1000 }); out.push(...r.blobs.map((b) => b.pathname)); cursor = r.hasMore ? r.cursor : undefined; } while (cursor);
+    return out;
+  }
+  try { return (await readdir(devPath(prefix))).map((f) => `${prefix}${f}`); } catch (e) { if (e.code === 'ENOENT') return []; throw e; }
 }
 
 // ---------- http helpers ----------

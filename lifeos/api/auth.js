@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     if (body.action === 'delete') {
       const s = await sessionUser(req); if (!s) return send(res, 401, { error: 'Please log in again.' });
       if (!(await verifyPassword(String(body.password || ''), s.user))) return send(res, 401, { error: 'Incorrect password.' });
-      await removeBlob(dataKey(s.user.id)); await removeBlob(dataKey(`${s.user.id}.v2`)).catch(() => {}); await removeBlob(`usage/${s.user.id}.json`).catch(() => {}); await deleteUserRecord(s.user.email);
+      await removeBlob(dataKey(s.user.id)); await removeBlob(dataKey(`${s.user.id}.v2`)).catch(() => {}); await removeBlob(`usage/${s.user.id}.json`).catch(() => {}); await removeBlob(`push/${s.user.id}.json`).catch(() => {}); await deleteUserRecord(s.user.email);
       return send(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie(req, '', 0) });
     }
     return send(res, 400, { error: 'Unknown action' });

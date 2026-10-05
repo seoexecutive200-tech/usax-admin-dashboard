@@ -1,0 +1,23 @@
+# Sends LifeOS background reminders: pings /api/push-tick every 5 minutes.
+# Setup: repo Settings → Secrets and variables → Actions →
+#   secret   PUSH_CRON_SECRET  (same value as the Vercel env var of the same name, 16+ characters)
+#   variable LIFEOS_URL        (e.g. https://lifeos-chi-silk-33.vercel.app)
+# Note: GitHub only runs scheduled workflows from the repository's default branch.
+name: LifeOS push tick
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    if: ${{ vars.LIFEOS_URL != '' }}
+    steps:
+      - name: Call /api/push-tick
+        env:
+          URL: ${{ vars.LIFEOS_URL }}
+          SECRET: ${{ secrets.PUSH_CRON_SECRET }}
+        run: |
+          code=$(curl -sS -o out.json -w '%{http_code}' --max-time 25 -H "Authorization: Bearer $SECRET" "$URL/api/push-tick" || echo 000)
+          cat out.json 2>/dev/null; echo " (HTTP $code)"
+          [ "$code" = "200" ]

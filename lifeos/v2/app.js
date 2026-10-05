@@ -24,6 +24,7 @@ import { detect, dbNameFor, v1DbNameFor } from './js/account.js';
 import { startSync, onSyncChange, sync } from './js/sync.js';
 import { showAuth } from './js/screens/auth.js';
 import { startRoutineLoop, prune as pruneRoutines } from './js/routines.js';
+import { initPush } from './js/push.js';
 
 async function boot() {
   // 1. Who is using the app? (signed in / needs to sign in / local-only because the host has no accounts)
@@ -88,6 +89,7 @@ async function boot() {
   document.getElementById('boot')?.remove();
   lsSet('lifeos.v2ok', String(Date.now())); // the original LifeOS may now open this version directly
   watchUpdates();
+  initPush(); // re-attaches background reminders if they're on for this device
   if (store.settings().mode === 'custom' && !store.all('trackers').length) setTimeout(() => builderSheet(), 700);
   else if (!store.settings().introSeen && store.profile().onboarded) setTimeout(() => tourSheet(), 900);
 }

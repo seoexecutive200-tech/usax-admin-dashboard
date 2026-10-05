@@ -35,3 +35,23 @@ The Groq key is never shipped, logged or exported. A user's own key stays in the
 
 ## Test helpers
 `tools/dev-server.js` (static + API, with `/__bump?v=` to simulate a release), `tools/mock-groq.js` (fake AI backend). `tools/gen-shell.js` regenerates v2's offline file list.
+
+## Background reminders (LifeOS 2.1)
+
+Reminders reach the phone even when the app is closed, using Web Push. The app uploads the next ~3 days of reminder times
+(routine nudges and tracker reminders; plain text only) to `/api/push`, and a scheduler calls `/api/push-tick` every few minutes
+to send whatever is due.
+
+Server setup (Vercel → Project → Settings → Environment Variables), then redeploy:
+
+| Variable | Value |
+|---|---|
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | `npx web-push generate-vapid-keys` |
+| `VAPID_SUBJECT` | `mailto:you@example.com` |
+| `PUSH_CRON_SECRET` | any random string of 16+ characters |
+
+Scheduler (pick one): the GitHub Action in `.github/workflows/lifeos-push-tick.yml` (needs `PUSH_CRON_SECRET` secret and
+`LIFEOS_URL` variable; GitHub runs schedules from the default branch only), cron-job.org hitting
+`GET https://<site>/api/push-tick` with header `Authorization: Bearer <PUSH_CRON_SECRET>` every 5 minutes, or Vercel Cron on a Pro plan.
+
+Users turn it on in **You → Background reminders**. iPhone/iPad need the app added to the Home Screen first (iOS 16.4+).

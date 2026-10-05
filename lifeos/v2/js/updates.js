@@ -11,10 +11,13 @@ const listeners = new Set();
 export const onUpdateChange = (fn) => { listeners.add(fn); return () => listeners.delete(fn); };
 const changed = () => listeners.forEach((f) => f());
 
+const cmpVer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); return 0; };
 async function loadNotes() {
   try {
     const r = await fetch(new URL('../releases.json', document.baseURI), { cache: 'no-store' }); const latest = (await r.json())?.latest;
     notes = latest && latest.path === 'v2/' ? latest : null;
+    // people already on 2.x only need what's new since their version (items without `since` belong to the first 2.0 release)
+    if (notes) { const fresh = (notes.notes || []).filter((x) => x.since && cmpVer(x.since, APP_VERSION) > 0); if (fresh.length) notes = { ...notes, notes: fresh }; }
   } catch { notes = null; }
 }
 function track(sw) {
