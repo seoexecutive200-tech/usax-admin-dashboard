@@ -21,7 +21,7 @@ import { customizeTodaySheet } from '../today-layout.js';
 import { calendarsCard, connectSheet, gcalRemove, gcalSyncNow } from '../gcal-ui.js';
 import * as GC from '../gcal.js';
 import { TONES, getTone, nudgeText } from '../tone.js';
-import { NUDGE_META } from '../routines.js';
+import { NUDGE_META, checkinConfig } from '../routines.js';
 import { sync, flush, syncNow, hasPending, clearSyncState, stopSync } from '../sync.js';
 import { forgetUser, logoutRequest, deleteAccountRequest } from '../account.js';
 
@@ -63,6 +63,7 @@ function coachCard(s) {
   return h`<section class="card"><div class="eyebrow">Coaching style</div>
     <div class="field"><span class="field-label">Tone</span>${seg('tone', Object.entries(TONES).map(([k, v]) => [k, v[0]]), tone)}<small class="muted">${TONES[tone][1]}. Applies to reminders, nudges and how the AI words its advice. Numbers and facts never change.</small></div>
     <div class="card inset"><div class="tiny muted">Example reminder</div><b>${ex.title}</b>${ex.body ? h`<div class="small muted">${ex.body}</div>` : ''}</div>
+    <div class="card inset"><label class="check"><input type="checkbox" data-change="checkins" ${checkinConfig().on ? 'checked' : ''}><span><b>Check-ins</b> — a morning and an evening question that fit your day</span></label><div class="grid2">${field('Morning', h`<input class="input" type="time" data-change="ciam" value="${checkinConfig().am}">`)}${field('Evening', h`<input class="input" type="time" data-change="cipm" value="${checkinConfig().pm}">`)}</div><small class="muted">Sent as notifications at these times (respecting quiet hours). The question itself waits on Today.</small></div>
     <label class="check"><input type="checkbox" data-change="followups" ${s.askFollowups !== false ? 'checked' : ''}><span>Ask follow-up questions when I add plain text <small class="muted">(needs AI)</small></span></label>
     <p class="tiny muted">How often the advisor speaks is set under Advisor mode above.</p></section>`;
 }
@@ -168,6 +169,9 @@ export default {
     },
     aienabled: (el) => store.setSettings({ aiEnabled: el.checked }),
     followups: (el) => store.setSettings({ askFollowups: el.checked }),
+    checkins: (el) => store.setSettings({ checkins: { ...(store.settings().checkins || {}), on: el.checked } }),
+    ciam: (el) => el.value && store.setSettings({ checkins: { ...(store.settings().checkins || {}), am: el.value } }),
+    cipm: (el) => el.value && store.setSettings({ checkins: { ...(store.settings().checkins || {}), pm: el.value } }),
     model: (el) => { const v = el.value.trim(); if (v) { store.setSettings({ modelId: v }); toast('Model updated'); } },
     temp: (el) => store.setSettings({ temperature: Number(el.value) }),
   },

@@ -6,6 +6,7 @@ import { dayKey, addMinutes, addDays, startOfDay, parseKey, lsGet, lsSet, safeJS
 import * as T from './trackers.js';
 import { nudgeText } from './tone.js';
 import * as Tips from './tips.js';
+import * as Moments from './moments.js';
 
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monday first
@@ -115,6 +116,7 @@ export function generalCovered(id, time, date) {
   const type = Tips.ROUTINE_TYPE[id]; if (!type) return false; const key = dayKey(date); const at = atTime(date, time);
   return activeRoutines().some((r) => scheduledOn(r, date) && statusFor(r, key) === 'working' && (r.nudges?.[type]?.on ?? DEFAULT_NUDGES[type]?.on) && at >= windowOf(r, date).start && at <= windowOf(r, date).end);
 }
+export const checkinConfig = () => { const c = store.settings().checkins || {}; return { on: c.on !== false, am: /^\d{1,2}:\d{2}$/.test(c.am || '') ? c.am : '08:30', pm: /^\d{1,2}:\d{2}$/.test(c.pm || '') ? c.pm : '20:30' }; };
 export const inQuietHours = (d = new Date()) => { const [a, b] = store.settings().quietHours || ['22:00', '07:00']; const m = d.getHours() * 60 + d.getMinutes(); const f = minutes(a), t = minutes(b); return f === t ? false : f < t ? m >= f && m < t : m >= f || m < t; };
 
 // ---- notification loop (runs while the app is open or alive in the background) ----
@@ -143,6 +145,8 @@ export function startRoutineLoop(onChange) {
       notify(`${d.routine.name}: ${d.title}`, d.body, d.key);
     }
     if (!inQuietHours(now)) for (const g of Tips.dueGeneral(now, generalCovered)) if (!seen[g.id]) { seen[g.id] = Date.now(); dirty = true; notify('Reminder', g.text, g.id); }
+    // morning / evening check-in nudges (the question itself waits for you on Today)
+    { const c = checkinConfig(); if (c.on && !inQuietHours(now)) for (const [kind, time, title] of [['am', c.am, 'Morning check-in'], ['pm', c.pm, 'Evening review']]) { const [hh, mm] = time.split(':').map(Number); const t0 = new Date(now); t0.setHours(hh, mm, 0, 0); const k = `ci:${kind}:${dayKey(now)}`; const m = (now - t0) / 60000; if (m >= 0 && m <= 45 && !seen[k]) { seen[k] = Date.now(); dirty = true; notify(title, Moments.checkinText(kind, now), k); } } }
     // tracker reminders (user-defined) and rules that depend on the clock (missing / streak / count)
     const trk = T.dueReminders(now);
     for (const d of trk) if (!seen[d.key]) { seen[d.key] = Date.now(); dirty = true; notify(d.tracker.name, d.text, d.key); }

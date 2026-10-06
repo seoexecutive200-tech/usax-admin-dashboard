@@ -32,7 +32,7 @@ export default {
     const maxV = Math.max(0.5, ...fl.map((d) => d.value));
     return h`<div class="screen plan">
       <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
-      <div class="hero"><h1>Plan</h1><p class="muted">${fmtDate(now)}</p><div class="seg" role="group" aria-label="View"><button class="seg-btn on" aria-pressed="true">Week</button><button class="seg-btn" data-act="to-month">Month</button></div></div>
+      <div class="hero"><h1>Plan</h1><p class="muted">${fmtDate(now)}</p><div class="seg" role="group" aria-label="View"><button class="seg-btn on" aria-pressed="true">Week</button><button class="seg-btn" data-act="to-month">Month</button></div><button class="btn btn-sm btn-primary" data-act="plan-day" style="margin-top:10px">${icon('sparkle', 14)} Plan my day</button></div>
       <div class="week" role="tablist" aria-label="Week">
         <button class="icon-btn" data-act="wk" data-d="-7" aria-label="Previous week">${icon('chevronL', 18)}</button>
         <div class="week-days">${week.map((d) => { const k = dayKey(d); const l = A.loadLevel(A.loadForDay(k)); const has = A.eventsOnDay(k).length; return h`<button class="day ${k === sel ? 'sel' : ''} ${k === dayKey() ? 'today' : ''}" role="tab" aria-selected="${k === sel}" data-act="day" data-k="${k}"><small>${fmtDate(d, { weekday: 'short' })}</small><b>${d.getDate()}</b><i class="dot" style="background:${has ? levelColor(l) : 'var(--line)'}"></i></button>`; })}</div>
@@ -58,7 +58,7 @@ export default {
     wk: (el) => { sel = dayKey(addDays(parseKey(sel), Number(el.dataset.d))); rerender(); },
     add: () => eventFormSheet({ defaults: { start: (() => { if (sel !== dayKey()) { const d = parseKey(sel); d.setHours(9, 0); return d; } return new Date(Math.ceil((Date.now() + 5 * 60000) / 1800000) * 1800000); })() } }),
     event: (el) => eventDetailSheet(el.dataset.id), ready: (el) => navigate(`#/readiness/${el.dataset.id}`),
-    'to-month': () => navigate('#/calendar'), tfocus: (el) => { const t = store.get('tasks', el.dataset.id); focusStartSheet({ label: t?.title || '', taskId: t?.id || null }); },
+    'to-month': () => navigate('#/calendar'), 'plan-day': () => import('../dayplan.js').then((m) => m.planDaySheet()), tfocus: (el) => { const t = store.get('tasks', el.dataset.id); focusStartSheet({ label: t?.title || '', taskId: t?.id || null }); },
     addtask: () => taskFormSheet({}),
     tdone: async (el) => { const t = store.get('tasks', el.dataset.id); const prev = t.status; await store.save('tasks', { id: t.id, status: prev === 'done' ? 'open' : 'done' }); if (prev !== 'done') toast('Task done', { undo: () => store.save('tasks', { id: t.id, status: 'open' }) }); },
     tedit: (el) => taskFormSheet({ task: store.get('tasks', el.dataset.id) }),

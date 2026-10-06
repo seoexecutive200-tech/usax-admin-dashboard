@@ -4,6 +4,7 @@ import { store } from './store.js';
 import { h, icon, openSheet, toast } from './ui.js';
 
 export const TODAY_CARDS = [
+  { id: 'now', label: 'Right now', hint: 'Check-ins and questions that fit the moment' },
   { id: 'glance', label: 'Today at a glance', hint: 'Energy, mental load and recovery', builtin: true },
   { id: 'routine', label: 'Daily routines', hint: 'Office hours and other routines, with nudges' },
   { id: 'timer', label: 'Focus timer', hint: 'Start a focus session and keep reminders quiet' },

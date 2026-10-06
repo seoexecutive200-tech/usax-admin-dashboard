@@ -1,11 +1,29 @@
 {
   "latest": {
-    "version": "2.6.0",
+    "version": "2.7.0",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.6",
-    "summary": "Connect your Google Calendar, plus daily wellbeing tips and general reminders.",
+    "title": "LifeOS 2.7",
+    "summary": "LifeOS now pays attention: a Right-now card with questions that fit the moment, a day planner, and check-ins.",
     "notes": [
+      {
+        "since": "2.7.0",
+        "icon": "sparkle",
+        "title": "LifeOS pays attention",
+        "text": "A “Right now” card on Today asks the one question that fits the moment — before a meeting, after it ends, your morning check-in, an evening review, a quick energy pulse, a goal you haven’t logged. Tap an answer and it does something: logs, adds a task, starts focus."
+      },
+      {
+        "since": "2.7.0",
+        "icon": "calendar",
+        "title": "Plan my day",
+        "text": "LifeOS finds the free time between your events and lays your tasks into it as focus blocks with breaks, based on your energy. Review, untick, and add it to your calendar."
+      },
+      {
+        "since": "2.7.0",
+        "icon": "bell",
+        "title": "Check-in notifications",
+        "text": "A gentle morning and evening nudge — at times you choose — that mentions what’s on your day. They respect quiet hours and your coaching tone."
+      },
       {
         "since": "2.6.0",
         "icon": "calendar",

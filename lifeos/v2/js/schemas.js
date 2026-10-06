@@ -35,6 +35,8 @@ export const SCHEMAS = {
   clarify: obj({ understood: str, kind: { type: 'string', enum: ['tracker', 'goal', 'note', 'task', 'event', 'routine', 'unsure'] }, ready: { type: 'boolean' }, questions: { type: 'array', items: obj({ id: str, question: str, why: str, options: strArr }) } }),
   refined: obj({ title: str, start: str, durationMin: num, notes: str }),
   tips: obj({ tips: { type: 'array', items: obj({ title: str, text: str }) } }),
+  moment: obj({ message: str }),
+  dayplan: obj({ summary: str, blocks: { type: 'array', items: obj({ title: str, start: str, durationMin: num, kind: { type: 'string', enum: ['focus', 'break', 'habit'] }, taskId: str }) } }),
   coach: obj({ summary: str, suggestions: { type: 'array', items: obj({ title: str, detail: str }) }, watchOuts: strArr, questions: strArr }),
   series: obj({ x: str, y: str, lagDays: num, explanation: str }),
   advisor: obj({

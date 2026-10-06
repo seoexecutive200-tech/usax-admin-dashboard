@@ -14,6 +14,7 @@ import { updateReady, showUpdate, releaseNotes } from '../updates.js';
 import { todayLayout, customizeTodaySheet } from '../today-layout.js';
 import { timerCard, focusStartSheet, focusSheet } from '../focus-ui.js';
 import { tipsCard, tipsSheet, nextTip, remindDaily } from '../tips-ui.js';
+import { momentCard, momentActions } from '../moment-ui.js';
 
 let banners = [];
 export const setBanners = (b) => { banners = b; };
@@ -50,11 +51,7 @@ function dueTrackerBanners(now) {
 }
 function advisorCard(item) {
   const ai = aiReady();
-  if (!item) {
-    return h`<div class="card advisor calm"><div class="orb"></div><div class="grow"><div class="row between"><div class="strong">Advisor <span class="beta">BETA</span></div><button class="icon-btn" data-act="advmenu" aria-label="Advisor options">${icon('more', 20)}</button></div>
-      <p class="adv-text">Nothing needs your attention right now. I’ll speak up only when it’s worth it.</p>
-      <div class="row gap wrap"><button class="chip-btn" data-act="ask">Ask the advisor ${icon('chevron', 14)}</button>${!ai ? h`<button class="chip-btn" data-act="setupai">${hasKey() ? 'AI is off' : 'Set up AI'}</button>` : ''}</div></div></div>`;
-  }
+  if (!item) return ''; // the “Right now” card replaces the old “nothing needs your attention” message
   const act = item.offer === 'minimal_day' ? h`<button class="btn btn-primary btn-sm" data-act="minimal" data-id="${item.id}">Essentials-only day</button>`
     : item.offer === 'new_baseline' ? h`<button class="btn btn-primary btn-sm" data-act="baseline" data-id="${item.id}">New baseline</button><button class="btn btn-sm" data-act="temporary" data-id="${item.id}">It’s temporary</button>`
       : item.question ? h`${['Timing', 'Too hard', 'Not relevant', 'Goal changed'].map((o) => h`<button class="chip-btn" data-act="friction" data-id="${item.id}" data-o="${o}">${o}</button>`)}`
@@ -84,6 +81,7 @@ export default {
         ${cap.estimated.energy ? h`<p class="tiny muted">Energy is estimated from your baseline until you log it.</p>` : ''}
       </section>`,
       routine: () => routineCards(now),
+      now: () => momentCard(),
       timer: () => timerCard(),
       tips: () => tipsCard(),
       advisor: () => advisorCard(item),
@@ -100,7 +98,7 @@ export default {
       </section>`,
     };
     return h`<div class="screen today">
-      <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn has-dot ${banners.length ? 'on' : ''}" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
+      <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="ask" aria-label="Talk to LifeOS">${icon('sparkle', 22)}</button><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn has-dot ${banners.length ? 'on' : ''}" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
       <div class="hero"><h1>${greeting(now)}${prof.name ? `, ${prof.name}` : ''}</h1><p class="muted">${fmtDate(now)}</p></div>
       ${banners.slice(0, 2).map((b) => h`<div class="banner"><span>${icon('clock', 18)} ${b.text}</span><span class="row gap"><button class="btn btn-sm" data-act="banner-open" data-e="${b.eventId}">Open</button><button class="icon-btn" data-act="banner-x" data-b="${b.id}" aria-label="Dismiss">${icon('x', 16)}</button></span></div>`)}
       ${gap >= 3 && s.gapAck !== dayKey() ? h`<div class="card slim"><div class="eyebrow">Welcome back</div><p>It’s been ${gap} days. No catching up needed — just a quick recalibration.</p><button class="btn btn-sm btn-primary" data-act="gap" data-d="${gap}">Recalibrate</button></div>` : ''}
@@ -111,7 +109,7 @@ export default {
       <div class="center"><button class="link" data-act="customize-today">${icon('edit', 14)} Customize Today</button></div></div>`;
   },
   actions: {
-    ...routineActions,
+    ...routineActions, ...momentActions,
     upd: () => showUpdate(), 'customize-today': () => customizeTodaySheet(), 'focus-start': () => focusStartSheet(), 'tips-open': () => tipsSheet(), 'tip-next': () => { nextTip(); rerender(); }, 'tip-remind': (el) => remindDaily(el.dataset.text, el.dataset.cat), 'focus-open': () => focusSheet(),
     'trk-hub': () => navigate('#/trackers'), 'trk-new': () => builderSheet(), 'trk-open': (el) => navigate(`#/tracker/${el.dataset.id}`),
     'trk-log': (el) => entrySheet(store.get('trackers', el.dataset.id)), 'trk-quick': (el) => quickLog(el.dataset.id, el.dataset.f, el.dataset.v),
