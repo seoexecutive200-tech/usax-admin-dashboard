@@ -9,6 +9,8 @@ import * as T from './trackers.js';
 import * as F from './focus.js';
 import * as Tips from './tips.js';
 import * as Moments from './moments.js';
+import * as CI from './checkins.js';
+import * as Tidy from './tidy.js';
 
 const FLAG = 'lifeos.push2'; // per device: this browser has background reminders on
 const HORIZON_MS = 70 * 3600 * 1000;
@@ -80,7 +82,7 @@ export function buildJobs(now = new Date()) {
   const quiet = store.settings().quietHours || ['22:00', '07:00']; const horizon = +now + HORIZON_MS; const jobs = [];
   // A running focus session: schedule its end, and hold other reminders until it's over (they return when the session stops).
   const fz = F.active(); const fzEnd = fz?.planned && !fz.pausedAt ? +now + F.remainingMs(+now) : null; const hold = fz?.quiet && !fz.pausedAt ? (fzEnd ?? +now + 12 * 3600000) : 0;
-  const add = (j) => { const at = j.at instanceof Date ? j.at : new Date(j.at); const own = String(j.id).startsWith('focus:'); if (+at <= +now + 20000 || +at > horizon || (!own && (inQuiet(at, quiet) || +at < hold))) return; jobs.push({ ...j, at: +at }); };
+  const add = (j) => { const at = j.at instanceof Date ? j.at : new Date(j.at); const own = String(j.id).startsWith('focus:'); const long = /^(wb|tidy):/.test(String(j.id)); if (+at <= +now + 20000 || (+at > horizon && !long) || (!own && (inQuiet(at, quiet) || +at < hold))) return; jobs.push({ ...j, at: +at }); };
   if (fz && fzEnd) add({ id: `focus:${fz.id}:end`, at: fzEnd, title: 'Focus complete', body: fz.label ? `Nice work on “${fz.label}”.` : 'Session finished — time for a break.', url: './index.html#/today' });
   for (let i = 0; i < 4; i++) {
     const date = addDays(now, i); const key = dayKey(date);
@@ -100,6 +102,14 @@ export function buildJobs(now = new Date()) {
       const at = new Date(date); const [h, m] = rem.time.split(':').map(Number); at.setHours(h, m, 0, 0);
       add({ id: `trk:${t.id}:${rem.id}:${key}`, at, title: t.private ? 'Reminder' : t.name, body: t.private ? 'Time for a check-in.' : (rem.text || `Time to log ${t.name.toLowerCase()}`), url: './index.html#/today' });
     }
+  }
+  // adaptive check-ins that fit the coming days (generic text for personal topics)
+  for (const j of CI.pushPlan(now)) add({ ...j, url: './index.html#/today' });
+  // gentle nudges: a welcome back after 5 quiet days (replaced the moment you open the app), and a weekly tidy-up
+  if (CI.getCx().pushNudges !== false) {
+    const last = Tidy.lastActive();
+    if (last) { const at = addDays(new Date(last), 5); at.setHours(10, 0, 0, 0); add({ id: `wb:${dayKey(new Date(last))}`, at, title: 'LifeOS', body: 'Welcome back whenever you’re ready — there’s nothing to catch up on.', url: './index.html#/today' }); }
+    const n = Tidy.scan(now).total; if (n >= 3) { const sun = addDays(now, (7 - now.getDay()) % 7); sun.setHours(17, 0, 0, 0); add({ id: `tidy:${dayKey(sun)}`, at: sun, title: 'Tidy up', body: `${n} things could use a quick look — duplicates, slipping tasks or quiet goals.`, url: './index.html#/today' }); }
   }
   return jobs.sort((a, b) => a.at - b.at);
 }

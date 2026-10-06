@@ -26,7 +26,11 @@ const refKey = (id, ref) => `${id}:${ref?.id || ''}`;
 
 // ---------- facts ----------
 const all = () => store.all(STORE);
-const answered = (id) => all().filter((r) => r.checkinId === id && r.status === 'answered').sort((a, b) => b.ts.localeCompare(a.ts));
+let ansV = -1; let ansBy = new Map(); // answered check-ins by id, newest first — rebuilt only when the store changes
+const answered = (id) => {
+  if (ansV !== store.version()) { ansBy = new Map(); for (const r of all().filter((x) => x.status === 'answered').sort((a, b) => b.ts.localeCompare(a.ts))) (ansBy.get(r.checkinId) || ansBy.set(r.checkinId, []).get(r.checkinId)).push(r); ansV = store.version(); }
+  return ansBy.get(id) || [];
+};
 const onDay = (id, key) => answered(id).find((r) => dayKey(r.ts) === key) || null;
 const ageMin = (r) => (r ? (Date.now() - +new Date(r.ts)) / 60000 : Infinity);
 const ans = (r, k) => (r && r.answers ? r.answers[k] ?? null : null);
@@ -206,6 +210,25 @@ function eligible(def, c, s) {
   // ask less as it learns more: three identical answers in a row → this question matters less
   const l3 = answered(def.id).slice(0, 3).map((x) => JSON.stringify(x.answers)); if (l3.length === 3 && new Set(l3).size === 1 && p < URGENT) p *= 0.6;
   return { def, ref, p, detail: r.detail || null };
+}
+/** What would be eligible at a given moment — no side effects. Used to plan background notifications. */
+export function peek(at) { const c = ctx(at); const s = ls(); return CHECKINS.map((d) => eligible(d, c, s)).filter((e) => e && e.p >= MIN_PRIORITY).sort((a, b) => b.p - a.p); }
+const NOTE_OK = new Set(['work', 'plan']); // other domains are personal: the notification stays generic
+/** Background notifications for check-ins: at most 2 a day, 3+ hours apart, outside quiet hours, never for the morning/evening check-ins (those have their own nudges). */
+export function pushPlan(now = new Date()) {
+  const cx = getCx(); if (!cx.on || cx.push === false) return []; const mode = store.settings().advisorMode || 'balanced'; const cap = Math.min(2, CAPS[mode] ?? 4); const out = [];
+  for (let i = 0; i < 3; i++) {
+    const day = addDays(now, i); const cands = [];
+    for (let h = 9; h <= 20; h++) {
+      const at = new Date(day); at.setHours(h, 0, 0, 0); if (+at <= +now + 60000 || isQuiet(at)) continue;
+      const c = ctx(at); const e = peek(at).find((x) => ![1, 91].includes(x.def.id)); if (!e) continue;
+      const b = build(e, c); cands.push({ id: e.def.id, p: e.p, at: +at, ref: e.ref, body: NOTE_OK.has(e.def.domain) ? `One quick question: ${b.prompt}`.slice(0, 150) : 'A quick check-in is waiting — one question, about a minute.' });
+    }
+    const chosen = []; // most valuable first, keeping 3+ hours between them
+    for (const c of cands.sort((a, b) => b.p - a.p || a.at - b.at)) { if (chosen.length >= cap) break; if (chosen.some((y) => y.id === c.id || Math.abs(y.at - c.at) < 3 * 3600000)) continue; chosen.push(c); }
+    for (const c of chosen) out.push({ id: `cx:${c.id}:${dayKey(new Date(c.at))}${c.ref?.id ? `:${c.ref.id}` : ''}`, at: c.at, title: 'LifeOS check-in', body: c.body });
+  }
+  return out;
 }
 export const dismissals = (id, days = 14) => all().filter((r) => r.checkinId === id && r.status === 'dismissed' && +new Date(r.ts) > Date.now() - days * 86400000).length;
 

@@ -28,7 +28,7 @@ export function sanitizeJobs(jobs, now = Date.now()) {
   const out = []; const seen = new Set();
   for (const j of jobs) {
     const at = Number(j?.at); const id = clean(j?.id, 120);
-    if (!id || seen.has(id) || !Number.isFinite(at) || at < now - STALE_MS || at > now + 3 * 86400000) continue;
+    if (!id || seen.has(id) || !Number.isFinite(at) || at < now - STALE_MS || at > now + (/^(wb|tidy):/.test(id) ? 14 : 3) * 86400000) continue;
     seen.add(id); out.push({ id, at, title: clean(j.title, 80) || 'LifeOS', body: clean(j.body, 160), url: /^\.?\/?[\w./#?=&-]{0,80}$/.test(String(j.url || '')) ? String(j.url) : './index.html#/today' });
     if (out.length >= MAX_JOBS) break;
   }

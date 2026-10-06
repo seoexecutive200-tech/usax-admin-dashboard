@@ -76,6 +76,8 @@ function hubHTML() {
   return h`<p class="small muted">LifeOS doesn’t run these 100 check-ins on a schedule. Each one is a candidate: it’s asked only when it can change a decision, it hasn’t been answered recently, and it fits your quiet hours and daily limit — otherwise LifeOS stays silent. The more it learns, the less it asks.</p>
     <section class="card inset"><label class="check"><input type="checkbox" data-ci-chg="on" ${cx.on ? 'checked' : ''}><span><b>Adaptive check-ins</b> <small class="muted">${st.shown} of ${st.cap} used today · ${st.mode} mode${st.quiet ? ' · quiet hours now' : ''}</small></span></label>
       <small class="muted">Change how many per day with Advisor mode in You (Quiet 2 · Balanced 4 · Active 6). At least 90 minutes apart.</small></section>
+    <section class="card"><div class="eyebrow">Notifications</div><label class="check"><input type="checkbox" data-ci-chg="push" ${cx.push !== false ? 'checked' : ''}><span>Send check-ins as notifications <small class="muted">at most 2 a day, 3+ hours apart, never in quiet hours. Personal topics show a generic message.</small></span></label>
+      <label class="check"><input type="checkbox" data-ci-chg="pushNudges" ${cx.pushNudges !== false ? 'checked' : ''}><span>Welcome-back and weekly tidy-up nudges <small class="muted">one after 5 quiet days; one on Sunday evening if there’s clutter</small></span></label><small class="muted">Needs background reminders turned on in You.</small></section>
     <section class="card"><div class="eyebrow">Your own targets</div><div class="grid2"><div class="field"><label class="field-label" for="ci-sleep">Sleep target (hours)</label><input class="input" id="ci-sleep" type="number" step="0.5" min="3" max="14" inputmode="decimal" value="${cx.sleepH ?? ''}" placeholder="not set"></div><div class="field"><label class="field-label" for="ci-hyd">Water target (ml)</label><input class="input" id="ci-hyd" type="number" step="50" min="0" inputmode="numeric" value="${cx.hydrationMl ?? ''}" placeholder="not set"></div></div>
       <small class="muted">LifeOS never invents a target. Sleep and water comparisons only use numbers you set here.</small><div><button class="btn btn-sm" data-ci="targets">Save targets</button></div></section>
     <section class="card"><div class="eyebrow">Optional check-ins</div>${optList().map(([k, l]) => h`<label class="check"><input type="checkbox" data-ci-chg="opt" data-k="${k}" ${cx.optin[k] ? 'checked' : ''}><span>${l}</span></label>`)}<small class="muted">Off by default. Health questions never diagnose; medication tracking is adherence logging only.</small></section>
@@ -140,6 +142,7 @@ document.addEventListener('click', async (e) => {
 document.addEventListener('change', async (e) => {
   const el = e.target.closest('[data-ci-chg]'); if (!el) return; const k = el.dataset.ciChg;
   if (k === 'on') await CI.setCx({ on: el.checked });
+  else if (k === 'push' || k === 'pushNudges') await CI.setCx({ [k]: el.checked });
   else if (k === 'opt') await CI.setCx({ optin: { ...CI.getCx().optin, [el.dataset.k]: el.checked } });
   hubRefresh(); rerender();
 });

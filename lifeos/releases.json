@@ -1,11 +1,17 @@
 {
   "latest": {
-    "version": "2.9.0",
+    "version": "2.9.1",
     "path": "v2/",
     "released": "2026-10-06",
-    "title": "LifeOS 2.9.0",
-    "summary": "See and undo what LifeOS changed, Fixed/Flexible events, links in your data, tidy-up, and more exports.",
+    "title": "LifeOS 2.9.1",
+    "summary": "Notifications for check-ins, welcome-back and tidy-up.",
     "notes": [
+      {
+        "since": "2.9.1",
+        "icon": "bell",
+        "title": "Check-ins, welcome-back and tidy-up as notifications",
+        "text": "Check-ins that fit your coming days (like an energy check before an important event) can arrive as notifications — at most 2 a day, 3+ hours apart, never in quiet hours, and generic for personal topics. A welcome-back nudge after 5 quiet days and a Sunday tidy-up nudge too. Each can be switched off in Check-ins."
+      },
       {
         "since": "2.9.0",
         "icon": "refresh",
