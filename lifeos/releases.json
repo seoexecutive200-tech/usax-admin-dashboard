@@ -1,11 +1,29 @@
 {
   "latest": {
-    "version": "2.7.2",
+    "version": "2.8.0",
     "path": "v2/",
-    "released": "2026-10-05",
-    "title": "LifeOS 2.7.2",
-    "summary": "Fixes “Failed to validate JSON” AI errors — the app now recovers automatically.",
+    "released": "2026-10-06",
+    "title": "LifeOS 2.8.0",
+    "summary": "Adaptive check-ins: 100 questions LifeOS can ask — only one at a time, only when useful, often none.",
     "notes": [
+      {
+        "since": "2.8.0",
+        "icon": "brain",
+        "title": "Check-ins that know when to stay quiet",
+        "text": "100 check-ins across sleep, food, movement, work, plans, mood and money — but LifeOS asks at most one at a time, only when the answer could change something, never what you just told it, and often chooses silence. Your answers are saved as facts you can edit or delete; empty means “unknown”, never a guess."
+      },
+      {
+        "since": "2.8.0",
+        "icon": "chart",
+        "title": "Facts, calculations and possible patterns — kept apart",
+        "text": "Reports now separate what you logged, what LifeOS calculated (with how), and what may be happening. Patterns need at least 5 observations, show the counts, and are always associations — never causes or diagnoses."
+      },
+      {
+        "since": "2.8.0",
+        "icon": "target",
+        "title": "Your limits, your targets",
+        "text": "Quiet, Balanced and Active modes cap check-ins at 2, 4 or 6 a day. Skip a question three times and it stops. Sleep and water comparisons use only targets you set. Health topics like body, digestion, caffeine and medication are off until you turn them on."
+      },
       {
         "since": "2.7.2",
         "icon": "brain",

@@ -2,7 +2,7 @@
 // PUT  /api/data {stores, ifMatch?}  -> { etag }   (409 on revision conflict)
 import { send, readBody, checkOrigin, storageConfigured, sessionUser, readJSON, writeJSON, dataKey, scrubKeys } from './_lib.js';
 
-const STORES_V2_EXTRA = ['trackers', 'entries', 'rules'];
+const STORES_V2_EXTRA = ['trackers', 'entries', 'rules', 'checkins'];
 const STORES = ['profiles', 'settings', 'activities', 'logs', 'events', 'tasks', 'goals', 'memories', 'advisorItems', 'reports', 'experiments', 'finance'];
 const MAX_BYTES = 3_500_000; // Vercel function body limit is 4.5 MB
 

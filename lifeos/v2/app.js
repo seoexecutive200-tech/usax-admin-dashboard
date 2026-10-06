@@ -17,6 +17,7 @@ import calendar from './js/screens/calendar.js';
 import { mountFocusPill } from './js/focus-ui.js';
 import { startGcal } from './js/gcal.js';
 import './js/ai-setup.js';
+import './js/checkin-ui.js';
 import { watchUpdates } from './js/updates.js';
 import { tourSheet } from './js/tour.js';
 import { builderSheet } from './js/tracker-ui.js';

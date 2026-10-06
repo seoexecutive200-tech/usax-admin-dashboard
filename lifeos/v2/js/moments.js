@@ -41,7 +41,8 @@ const PREP = new Set(['meeting', 'appointment', 'video_call', 'deadline', 'socia
 export function candidates(now = new Date()) {
   const f = facts(now); const s = load(); const out = []; const day = f.key;
   if (F.active()) return out; // never interrupt a focus session
-  const push = (m) => { if (!isHandled(s, m.key)) out.push(m); };
+  const adaptive = !!(store.settings().cx?.on ?? true); // the adaptive check-ins own the morning / evening / energy questions
+  const push = (m) => { if (adaptive && ['am', 'pm', 'pulse'].includes(m.kind)) return; if (!isHandled(s, m.key)) out.push(m); };
 
   // 1. an event is about to start
   for (const e of f.evs) { const m = f.mins(e.start); if (m > 4 && m <= 50 && (PREP.has(e.type) || e.importance === 'high')) push({ key: `prep:${e.id}`, kind: 'prep', label: 'Coming up', open: `${e.title} starts at ${fmtTime(e.start)} — in ${Math.round(m)} minutes.`, start: 'q1', steps: {

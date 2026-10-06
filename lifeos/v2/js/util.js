@@ -1,5 +1,5 @@
 // Small pure helpers shared across modules.
-export const APP_VERSION = '2.7.2';
+export const APP_VERSION = '2.8.0';
 export const SCHEMA_VERSION = 2;
 
 export const uid = (prefix = 'id') =>

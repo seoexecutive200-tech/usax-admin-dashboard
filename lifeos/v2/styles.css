@@ -304,3 +304,10 @@ html[data-motion="reduced"] .sheet-wrap .sheet { transform: translateY(100%); } 
 .chip-btn.pick { background: var(--surface2); color: var(--text); border-color: var(--line2); } .chip-btn.pick.on { background: var(--blue); color: #fff; border-color: var(--blue); }
 .card.now .chip-btn.big { font-size: 15px; min-height: 42px; padding: 8px 14px; } .card.now .eyebrow { margin: 0; } .card.now p { margin: 0; } .card.now .chips { margin-top: 2px; } .card.now.done { border-color: var(--green); }
 .card.now form.row { align-items: center; } .card.now form .input { min-width: 0; }
+/* adaptive check-ins */
+.ci-scale { gap: 6px; } .ci-scale .chip-btn { min-width: 40px; padding: 6px 0; justify-content: center; }
+.card.now.ci form { display: grid; gap: 10px; margin-top: 4px; } .card.now.ci .field { margin: 0; } .card.now.ci summary { cursor: pointer; margin-top: 4px; }
+.card.now.warn { border-color: var(--amber); }
+.ci-fact { padding: 8px 0; border-top: 1px solid var(--line); } .ci-fact:first-of-type { border-top: 0; }
+.ci-row { display: flex; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); } .ci-row .col { display: grid; gap: 6px; }
+.ci-dom summary { cursor: pointer; display: flex; gap: 8px; align-items: center; }

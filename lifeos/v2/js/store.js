@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = {
   keyStorage: 'session', modelId: 'openai/gpt-oss-20b', temperature: 0.2,
   aiEnabled: true, advisorMode: 'balanced', quietHours: ['22:00', '07:00'],
   baselineStart: null, minimalDay: null, lastSuccessfulAiCall: null,
-  welcomed: false, dismissed: {}, mode: 'classic', hosted: true, introSeen: false, todayLayout: null, coachTone: 'gentle', checkins: null,
+  welcomed: false, dismissed: {}, mode: 'classic', hosted: true, introSeen: false, todayLayout: null, coachTone: 'gentle', checkins: null, cx: null,
 };
 const DEFAULT_PROFILE = {
   name: '', timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, locale: navigator.language || 'en',

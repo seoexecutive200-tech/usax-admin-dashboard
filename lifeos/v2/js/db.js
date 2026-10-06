@@ -1,7 +1,7 @@
 // IndexedDB access layer. Only store.js talks to this module.
 import { SCHEMA_VERSION } from './util.js';
 
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 let dbName = 'lifeos2';
 export const DB_NAME = 'lifeos2'; // v2 default (signed-out / local-only) database — v1's 'lifeos' database is never opened for writing
 export const V1_DB_NAME = 'lifeos';
@@ -17,11 +17,20 @@ export const STORE_DEFS = {
   trackers: {}, entries: { indexes: [['trackerId', 'trackerId'], ['ts', 'ts']] }, rules: {},
   advisorItems: { indexes: [['createdAt', 'createdAt']] },
   reports: {}, experiments: {}, finance: {},
+  checkins: { indexes: [['ts', 'ts']] },
 };
 export const STORE_NAMES = Object.keys(STORE_DEFS);
 
 // Migration hooks keyed by target version. Add a new function here when DB_VERSION increases.
+const createMissing = (db) => {
+  for (const [name, def] of Object.entries(STORE_DEFS)) {
+    if (db.objectStoreNames.contains(name)) continue;
+    const os = db.createObjectStore(name, { keyPath: 'id' });
+    (def.indexes || []).forEach(([n, p]) => os.createIndex(n, p));
+  }
+};
 const MIGRATIONS = {
+  2: createMissing, // 2.8.0: adds the 'checkins' store (answers to adaptive check-ins)
   1(db) {
     for (const [name, def] of Object.entries(STORE_DEFS)) {
       if (db.objectStoreNames.contains(name)) continue;
@@ -46,9 +55,10 @@ function open() {
       const db = req.result;
       for (let v = e.oldVersion + 1; v <= (e.newVersion || DB_VERSION); v++) MIGRATIONS[v]?.(db, req.transaction);
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => { memoryMode = true; resolve(null); };
-    req.onblocked = () => { memoryMode = true; resolve(null); };
+    let settled = false;
+    req.onsuccess = () => { settled = true; req.result.onversionchange = () => { req.result.close(); dbPromise = null; }; resolve(req.result); }; // let a newer version of the app upgrade the database
+    req.onerror = () => { settled = true; memoryMode = true; resolve(null); };
+    req.onblocked = () => { setTimeout(() => { if (!settled) { memoryMode = true; resolve(null); } }, 5000); }; // another open tab still holds the old version: give it a moment to close
   });
   return dbPromise;
 }

@@ -6,6 +6,7 @@ import { CORE_SYSTEM, MOMENT_WRITER } from './prompts.js';
 import { lsGet, lsSet, safeJSON, dayKey } from './util.js';
 import { rerender } from './router.js';
 import { aiOff, aiOffReason, aiNoteHidden, hideAiNote } from './ai-setup.js';
+import { checkinCard } from './checkin-ui.js';
 
 const prog = {}; // moment key -> { step, say }
 const snap = {}; // moment key -> the moment as first shown, so a question you've started stays put even if answering it changes the conditions
@@ -30,7 +31,8 @@ async function ensureAIText(m) {
 
 export function momentCard() {
   if (lastDone && lastDone.until > Date.now()) return h`<section class="card now done"><div class="row gap center">${icon('check', 18, 'c-green')}<span>${lastDone.msg}</span></div></section>`;
-  const live = Object.keys(snap)[0]; const m = live ? snap[live] : M.current(); if (!m) return ''; // once you've started answering, that question stays put
+  const live = Object.keys(snap)[0]; if (!live) { const ci = checkinCard(); if (ci) return ci; }
+  const m = live ? snap[live] : M.current(); if (!m) return ''; // once you've started answering, that question stays put
   const p = prog[m.key] || { step: m.start, say: '' }; const st = m.steps[p.step] || m.steps[m.start];
   if (p.step === m.start && !m.idle) ensureAIText(m);
   const first = p.step === m.start; const open = first ? (cached(ck(m)) || m.open) : '';
