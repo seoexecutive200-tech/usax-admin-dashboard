@@ -7,6 +7,7 @@ import { dayKey, addDays, lsGet, lsSet, lsDel } from './util.js';
 import * as R from './routines.js';
 import * as T from './trackers.js';
 import * as F from './focus.js';
+import * as Tips from './tips.js';
 
 const FLAG = 'lifeos.push2'; // per device: this browser has background reminders on
 const HORIZON_MS = 70 * 3600 * 1000;
@@ -91,6 +92,7 @@ export function buildJobs(now = new Date()) {
         add({ id: `${r.id}:${key}:start:0`, at: R.windowOf(r, date).start, title: r.name, body: 'Starting soon — open LifeOS and tap Logged in so I can guide your day.', url: './index.html#/today' });
       }
     }
+    for (const g of Tips.remindersOn(date, R.generalCovered)) add({ id: g.id, at: g.at, title: 'Reminder', body: g.text, url: './index.html#/today' });
     for (const t of T.allTrackers()) for (const rem of t.reminders || []) {
       if (!(rem.days || []).includes(date.getDay()) || !/^\d{1,2}:\d{2}$/.test(rem.time || '')) continue;
       const at = new Date(date); const [h, m] = rem.time.split(':').map(Number); at.setHours(h, m, 0, 0);

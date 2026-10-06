@@ -6,6 +6,7 @@
   "version": "1.0.0",
   "dependencies": {
     "@vercel/blob": "^2.8.0",
+    "ical.js": "^2.2.1",
     "web-push": "^3.6.7"
   },
   "scripts": {

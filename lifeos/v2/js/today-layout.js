@@ -7,6 +7,7 @@ export const TODAY_CARDS = [
   { id: 'glance', label: 'Today at a glance', hint: 'Energy, mental load and recovery', builtin: true },
   { id: 'routine', label: 'Daily routines', hint: 'Office hours and other routines, with nudges' },
   { id: 'timer', label: 'Focus timer', hint: 'Start a focus session and keep reminders quiet' },
+  { id: 'tips', label: 'Daily tip', hint: 'A simple wellbeing tip, plus general reminders', builtin: true },
   { id: 'advisor', label: 'Advisor', hint: 'Suggestions, only when worth it' },
   { id: 'focus', label: 'Focus', hint: 'Morning outlook, midday and evening check-ins', builtin: true },
   { id: 'trackers', label: 'Your trackers', hint: 'The trackers you pinned' },

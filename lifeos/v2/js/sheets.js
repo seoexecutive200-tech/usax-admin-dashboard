@@ -95,21 +95,22 @@ export function eventDetailSheet(id) {
     title: ev.title, tall: true,
     body: h`<div class="stack">
       <div class="row gap wrap"><span class="pill">${ev.type.replace('_', ' ')}</span><span class="pill ${ev.importance === 'high' ? 'pill-amber' : ''}">${ev.importance} importance</span>${ev.origin === 'ai' ? h`<span class="pill pill-ai">${icon('sparkle', 13)} AI suggested</span>` : ''}${ev.status !== 'scheduled' ? h`<span class="pill pill-green">${ev.status}</span>` : ''}</div>
-      <p class="strong">${fmtDate(ev.start, { weekday: 'long', day: 'numeric', month: 'long' })} · ${fmtTime(ev.start)}${ev.end && ev.end !== ev.start ? ` – ${fmtTime(ev.end)}` : ''}</p>
+      <p class="strong">${fmtDate(ev.start, { weekday: 'long', day: 'numeric', month: 'long' })} · ${ev.allDay ? 'All day' : `${fmtTime(ev.start)}${ev.end && ev.end !== ev.start ? ` – ${fmtTime(ev.end)}` : ''}`}</p>
+      ${ev.origin === 'google' ? h`<div class="card inset"><p class="small">${icon('calendar', 14)} From your Google Calendar. Change it there and it updates here. You can still add a checklist, prepare for it or use it in tasks and reminders.</p></div>` : ''}
       ${ev.location ? h`<p class="muted">${icon('external', 14)} ${/^https?:\/\//.test(ev.location) ? h`<a href="${ev.location}" target="_blank" rel="noopener noreferrer">${ev.location}</a>` : ev.location}</p>` : ''}
       ${ev.notes ? h`<p class="muted pre">${ev.notes}</p>` : ''}
       ${pending ? h`<div class="card inset"><p class="small">The advisor suggested this block. It is not on your schedule until you accept it.</p><div class="row gap"><button class="btn btn-primary" data-do="accept">Accept</button><button class="btn" data-do="dismiss">Dismiss</button></div></div>` : h`
       <div class="grid2">
         ${ev.status === 'completed' ? '' : h`<button class="btn btn-primary" data-do="complete">${icon('check', 18)} Complete</button>`}
         ${ev.status === 'skipped' ? '' : h`<button class="btn" data-do="skip">${icon('skip', 18)} Skip</button>`}
-        <button class="btn" data-do="resched">${icon('repeat', 18)} Reschedule</button>
-        <button class="btn" data-do="edit">${icon('edit', 18)} Edit</button>
+        ${ev.origin === 'google' ? '' : h`<button class="btn" data-do="resched">${icon('repeat', 18)} Reschedule</button>
+        <button class="btn" data-do="edit">${icon('edit', 18)} Edit</button>`}
         ${important ? h`<button class="btn" data-do="ready">${icon('target', 18)} Readiness</button>` : ''}
         <button class="btn" data-do="ics">${icon('download', 18)} Add to calendar</button>
       </div>
       <div id="resched-box" class="card inset hidden"><label class="field"><span class="field-label">New start</span><input class="input" type="datetime-local" id="resched-in" value="${toLocalInput(ev.start)}"></label><div class="row gap end"><button class="btn btn-primary" data-do="resched-save">Move it</button></div></div>
       <div id="cal-box" class="card inset hidden"><div class="stack">${Object.entries(adapters).map(([k, a]) => h`<button class="btn" data-cal="${k}">${a.label}</button>`)}</div></div>`}
-      <button class="btn btn-danger-ghost" data-do="delete">${icon('trash', 18)} Delete</button></div>`,
+      ${ev.origin === 'google' ? '' : h`<button class="btn btn-danger-ghost" data-do="delete">${icon('trash', 18)} Delete</button>`}</div>`,
     onOpen(s) {
       s.el.addEventListener('click', async (e) => {
         const cal = e.target.closest('[data-cal]'); if (cal) { adapters[cal.dataset.cal].run(store.get('events', id)); return; }

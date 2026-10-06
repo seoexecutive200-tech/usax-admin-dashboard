@@ -12,12 +12,15 @@ import { eventFormSheet, eventDetailSheet, taskFormSheet, searchSheet, notificat
 import { builderSheet } from '../tracker-ui.js';
 import { focusStartSheet } from '../focus-ui.js';
 import { formSheet } from '../routine-ui.js';
+import * as GC from '../gcal.js';
+import { connectSheet } from '../gcal-ui.js';
 
 export const KINDS = {
   event: { label: 'Events', color: 'var(--blue)', icon: 'calendar' }, task: { label: 'Tasks', color: 'var(--amber)', icon: 'check' },
   routine: { label: 'Routines', color: 'var(--green)', icon: 'clock' }, reminder: { label: 'Reminders', color: 'var(--violet)', icon: 'bell' },
   focus: { label: 'Focus', color: '#2dd4bf', icon: 'target' }, goal: { label: 'Goals', color: 'var(--pink)', icon: 'flag' },
 };
+GC.onGcal(() => { if (document.body.dataset.screen === 'calendar') rerender(); });
 let month = startOfDay(new Date()); month.setDate(1);
 let sel = dayKey();
 const hidden = () => new Set(safeJSON(lsGet('lifeos.calHidden'), []));
@@ -26,7 +29,7 @@ const setHidden = (s) => lsSet('lifeos.calHidden', JSON.stringify([...s]));
 /** Everything that happens on a day, from every part of the app. */
 export function itemsOn(key) {
   const d = parseKey(key); const out = []; const at12 = (ms) => (Number.isFinite(ms) ? ms : +d + 9 * 3600000);
-  for (const e of A.eventsOnDay(key)) out.push({ kind: 'event', id: e.id, title: e.title, ts: +new Date(e.start), end: +new Date(e.end || e.start), sub: [e.location, e.type].filter(Boolean).join(' · '), done: e.status === 'completed' });
+  for (const e of A.eventsOnDay(key)) out.push({ kind: 'event', id: e.id, title: e.title, ts: +new Date(e.start), end: +new Date(e.end || e.start), sub: [e.origin === 'google' ? 'Google Calendar' : '', e.location, e.origin === 'google' ? '' : e.type].filter(Boolean).join(' · '), done: e.status === 'completed', allDay: !!e.allDay });
   for (const t of store.all('tasks')) if (t.due && dayKey(t.due) === key) { const dd = new Date(t.due); out.push({ kind: 'task', id: t.id, title: t.title, ts: +dd, timed: !!(dd.getHours() || dd.getMinutes()), done: t.status === 'done' }); }
   for (const r of R.activeRoutines()) if (R.scheduledOn(r, d)) { const w = R.windowOf(r, d); out.push({ kind: 'routine', id: r.id, title: r.name, ts: +w.start, end: +w.end, sub: { working: 'Logged in', off: 'Day off', done: 'Done' }[R.statusFor(r, key)] || '' }); }
   for (const t of T.allTrackers()) for (const rem of t.reminders || []) if ((rem.days || []).includes(d.getDay()) && /^\d{1,2}:\d{2}$/.test(rem.time || '')) { const at = new Date(d); const [hh, mm] = rem.time.split(':').map(Number); at.setHours(hh, mm, 0, 0); out.push({ kind: 'reminder', id: t.id, title: t.private ? 'Reminder' : `${t.name}${rem.text ? `: ${rem.text}` : ''}`, ts: +at }); }
@@ -69,6 +72,7 @@ export default {
     return h`<div class="screen calendar">
       <header class="top">${logo()}<div class="row gap"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search', 22)}</button><button class="icon-btn" data-act="bell" aria-label="Reminders">${icon('bell', 22)}</button></div></header>
       <div class="hero"><h1>Plan</h1><div class="seg" role="group" aria-label="View"><button class="seg-btn" data-act="to-week">Week</button><button class="seg-btn on" aria-pressed="true">Month</button></div></div>
+      ${window.__account && !GC.state.feeds.length && GC.state.loaded ? h`<button class="card slim cal-connect" data-act="gcal-connect"><span class="t-ic lead">${icon('calendar', 20)}</span><span class="grow"><b>Connect Google Calendar</b><small class="muted"> See your Google events here</small></span>${icon('chevron', 16, 'muted')}</button>` : ''}
       <section class="card cal"><div class="row between center"><button class="icon-btn" data-act="cal-prev" aria-label="Previous month">${icon('chevronL', 18)}</button><b class="cal-title">${first.toLocaleDateString([], { month: 'long', year: 'numeric' })}</b><button class="icon-btn" data-act="cal-next" aria-label="Next month">${icon('chevron', 18)}</button></div>
         <div class="cal-grid cal-head">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => h`<span>${d}</span>`)}</div>
         <div class="cal-grid">${rows.map((d) => { const k = dayKey(d); const kinds = [...new Set(itemsOn(k).filter((x) => !hid.has(x.kind)).map((x) => x.kind))]; const n = itemsOn(k).filter((x) => !hid.has(x.kind)).length; return h`<button class="cal-day ${d.getMonth() !== first.getMonth() ? 'dim' : ''} ${k === sel ? 'sel' : ''} ${k === today ? 'today' : ''}" data-act="cal-day" data-k="${k}" aria-label="${fmtDate(d, { weekday: 'long', day: 'numeric', month: 'long' })}, ${n} item${n === 1 ? '' : 's'}"><b>${d.getDate()}</b><span class="dots">${kinds.slice(0, 4).map((x) => h`<i style="background:${KINDS[x].color}"></i>`)}</span></button>`; })}</div>
@@ -80,7 +84,7 @@ export default {
       ${un.length ? h`<section><div class="sec-h"><h2>No date</h2></div><ul class="agenda">${un.map((t) => h`<li><button class="ag-row" data-act="cal-undated" data-id="${t.id}"><span class="ag-time">Task</span><span class="ag-bar" style="background:${KINDS.task.color}"></span><span class="grow"><b>${t.title}</b><small class="muted">Not scheduled</small></span>${icon('chevron', 16, 'muted')}</button></li>`)}</ul></section>` : ''}</div>`;
   },
   actions: {
-    search: () => searchSheet(), bell: () => notificationsSheet(), 'to-week': () => navigate('#/plan'),
+    search: () => searchSheet(), bell: () => notificationsSheet(), 'to-week': () => navigate('#/plan'), 'gcal-connect': () => connectSheet(),
     'cal-prev': () => { month = new Date(month.getFullYear(), month.getMonth() - 1, 1); rerender(); }, 'cal-next': () => { month = new Date(month.getFullYear(), month.getMonth() + 1, 1); rerender(); },
     'cal-today': () => { sel = dayKey(); month = startOfDay(new Date()); month.setDate(1); rerender(); },
     'cal-day': (el) => { sel = el.dataset.k; const d = parseKey(sel); if (d.getMonth() !== month.getMonth()) month = new Date(d.getFullYear(), d.getMonth(), 1); rerender(); },

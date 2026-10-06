@@ -5,6 +5,7 @@ import { store } from './store.js';
 import { dayKey, addMinutes, addDays, startOfDay, parseKey, lsGet, lsSet, safeJSON } from './util.js';
 import * as T from './trackers.js';
 import { nudgeText } from './tone.js';
+import * as Tips from './tips.js';
 
 export const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Monday first
@@ -109,6 +110,13 @@ export function prune() {
   for (const a of store.all('activities')) if ((a.kind === 'nudge_ack' && a.at < cutoff) || (a.kind === 'routine_mark' && a.date < dayKey(addDays(new Date(), -120)))) store.remove('activities', a.id, { silent: true });
 }
 
+/** True when a working routine already gives this kind of nudge at that time (so the general reminder would just repeat it). */
+export function generalCovered(id, time, date) {
+  const type = Tips.ROUTINE_TYPE[id]; if (!type) return false; const key = dayKey(date); const at = atTime(date, time);
+  return activeRoutines().some((r) => scheduledOn(r, date) && statusFor(r, key) === 'working' && (r.nudges?.[type]?.on ?? DEFAULT_NUDGES[type]?.on) && at >= windowOf(r, date).start && at <= windowOf(r, date).end);
+}
+export const inQuietHours = (d = new Date()) => { const [a, b] = store.settings().quietHours || ['22:00', '07:00']; const m = d.getHours() * 60 + d.getMinutes(); const f = minutes(a), t = minutes(b); return f === t ? false : f < t ? m >= f && m < t : m >= f || m < t; };
+
 // ---- notification loop (runs while the app is open or alive in the background) ----
 const NOTIFIED = 'lifeos.notifiedNudges';
 let lastSig = '';
@@ -134,6 +142,7 @@ export function startRoutineLoop(onChange) {
       seen[d.key] = Date.now(); dirty = true;
       notify(`${d.routine.name}: ${d.title}`, d.body, d.key);
     }
+    if (!inQuietHours(now)) for (const g of Tips.dueGeneral(now, generalCovered)) if (!seen[g.id]) { seen[g.id] = Date.now(); dirty = true; notify('Reminder', g.text, g.id); }
     // tracker reminders (user-defined) and rules that depend on the clock (missing / streak / count)
     const trk = T.dueReminders(now);
     for (const d of trk) if (!seen[d.key]) { seen[d.key] = Date.now(); dirty = true; notify(d.tracker.name, d.text, d.key); }

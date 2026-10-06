@@ -4,7 +4,7 @@ import * as adv from '../advisor.js';
 import { h, raw, icon, ring, pct, EVENT_ICON, EVENT_COLOR, toast, openSheet, logo } from '../ui.js';
 import { greeting, fmtDate, fmtTime, fmtDur, dayKey, addDays, startOfDay, hoursUntil, partOfDay, round, isNum } from '../util.js';
 import { aiReady, hasKey } from '../groq.js';
-import { navigate } from '../router.js';
+import { navigate, rerender } from '../router.js';
 import { whySheet, askSheet, eventDetailSheet, searchSheet, notificationsSheet, capacitySheet, gapSheet, commit, proposeAction, quickLogSheet } from '../sheets.js';
 import { execute } from '../actions.js';
 import { routineCards, routineActions } from '../routine-ui.js';
@@ -13,6 +13,7 @@ import { trackerCard, entrySheet, quickLog, builderSheet } from '../tracker-ui.j
 import { updateReady, showUpdate, releaseNotes } from '../updates.js';
 import { todayLayout, customizeTodaySheet } from '../today-layout.js';
 import { timerCard, focusStartSheet, focusSheet } from '../focus-ui.js';
+import { tipsCard, tipsSheet, nextTip, remindDaily } from '../tips-ui.js';
 
 let banners = [];
 export const setBanners = (b) => { banners = b; };
@@ -84,12 +85,13 @@ export default {
       </section>`,
       routine: () => routineCards(now),
       timer: () => timerCard(),
+      tips: () => tipsCard(),
       advisor: () => advisorCard(item),
       focus: () => focusCard(cap),
       trackers: () => trackersSection(),
       habits: () => (habits.length ? h`<section><div class="sec-h"><h2>Habits</h2></div><div class="chips">${habits.map((a) => h`<button class="chip-btn big" data-act="habit" data-id="${a.id}">${a.name}</button>`)}</div></section>` : ''),
       next: () => h`<section><div class="sec-h"><h2>Next</h2><button class="link" data-act="goplan">See all ${icon('chevron', 14)}</button></div>
-        ${nexts.length ? h`<ul class="timeline">${nexts.map((e, i) => h`<li><span class="t-time">${fmtTime(e.start)}</span><button class="t-card ${EVENT_COLOR[e.type]}" data-act="event" data-id="${e.id}"><span class="t-main"><b>${e.title}</b><small>${[e.location, e.end !== e.start ? fmtDur((new Date(e.end) - new Date(e.start)) / 60000) : '', dayKey(e.start) !== dayKey() ? fmtDate(e.start, { weekday: 'short', day: 'numeric', month: 'short' }) : ''].filter(Boolean).join(' · ') || e.type.replace('_', ' ')}</small></span><span class="t-ic">${icon(EVENT_ICON[e.type] || 'target', 20)}</span></button></li>`)}</ul>`
+        ${nexts.length ? h`<ul class="timeline">${nexts.map((e, i) => h`<li><span class="t-time">${(e.allDay ? 'All day' : fmtTime(e.start))}</span><button class="t-card ${EVENT_COLOR[e.type]}" data-act="event" data-id="${e.id}"><span class="t-main"><b>${e.title}</b><small>${[e.location, e.end !== e.start ? fmtDur((new Date(e.end) - new Date(e.start)) / 60000) : '', dayKey(e.start) !== dayKey() ? fmtDate(e.start, { weekday: 'short', day: 'numeric', month: 'short' }) : ''].filter(Boolean).join(' · ') || e.type.replace('_', ' ')}</small></span><span class="t-ic">${icon(EVENT_ICON[e.type] || 'target', 20)}</span></button></li>`)}</ul>`
         : h`<div class="empty"><p>Nothing scheduled ahead.</p><button class="btn btn-sm" data-act="log" data-k="event">${icon('plus', 16)} Add event</button></div>`}
       </section>`,
       coming: () => h`<section><div class="sec-h"><h2>Coming Up</h2></div>
@@ -110,7 +112,7 @@ export default {
   },
   actions: {
     ...routineActions,
-    upd: () => showUpdate(), 'customize-today': () => customizeTodaySheet(), 'focus-start': () => focusStartSheet(), 'focus-open': () => focusSheet(),
+    upd: () => showUpdate(), 'customize-today': () => customizeTodaySheet(), 'focus-start': () => focusStartSheet(), 'tips-open': () => tipsSheet(), 'tip-next': () => { nextTip(); rerender(); }, 'tip-remind': (el) => remindDaily(el.dataset.text, el.dataset.cat), 'focus-open': () => focusSheet(),
     'trk-hub': () => navigate('#/trackers'), 'trk-new': () => builderSheet(), 'trk-open': (el) => navigate(`#/tracker/${el.dataset.id}`),
     'trk-log': (el) => entrySheet(store.get('trackers', el.dataset.id)), 'trk-quick': (el) => quickLog(el.dataset.id, el.dataset.f, el.dataset.v),
     'trk-pin': async (el) => { const t = store.get('trackers', el.dataset.id); await store.save('trackers', { id: t.id, pinned: !t.pinned }); },

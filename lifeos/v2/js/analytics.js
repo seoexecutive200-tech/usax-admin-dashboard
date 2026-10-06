@@ -91,7 +91,7 @@ export function eventsOnDay(key) {
   return activeEvents().filter((e) => dayKey(e.start) === key)
     .sort((a, b) => a.start.localeCompare(b.start));
 }
-export const eventMinutes = (e) => Math.max(0, (new Date(e.end || e.start) - new Date(e.start)) / 60000);
+export const eventMinutes = (e) => e.allDay ? 0 : Math.max(0, (new Date(e.end || e.start) - new Date(e.start)) / 60000);
 
 export function loadForDay(key) {
   let weighted = 0;

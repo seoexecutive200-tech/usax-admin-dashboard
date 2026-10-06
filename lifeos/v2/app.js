@@ -15,6 +15,7 @@ import trackers from './js/screens/trackers.js';
 import tracker from './js/screens/tracker.js';
 import calendar from './js/screens/calendar.js';
 import { mountFocusPill } from './js/focus-ui.js';
+import { startGcal } from './js/gcal.js';
 import { watchUpdates } from './js/updates.js';
 import { tourSheet } from './js/tour.js';
 import { builderSheet } from './js/tracker-ui.js';
@@ -91,6 +92,7 @@ async function boot() {
   document.getElementById('boot')?.remove();
   lsSet('lifeos.v2ok', String(Date.now())); // the original LifeOS may now open this version directly
   watchUpdates();
+  if (user) startGcal(); // Google Calendar events, if connected
   mountFocusPill(); // the focus timer pill + finishing sessions that ended while the app was closed
   initPush(); // re-attaches background reminders if they're on for this device
   if (store.settings().mode === 'custom' && !store.all('trackers').length) setTimeout(() => builderSheet(), 700);

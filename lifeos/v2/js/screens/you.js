@@ -18,6 +18,8 @@ import { checkNow, switchToV1, version, showUpdate, updateReady } from '../updat
 import { tourSheet } from '../tour.js';
 import * as P from '../push.js';
 import { customizeTodaySheet } from '../today-layout.js';
+import { calendarsCard, connectSheet, gcalRemove, gcalSyncNow } from '../gcal-ui.js';
+import * as GC from '../gcal.js';
 import { TONES, getTone, nudgeText } from '../tone.js';
 import { NUDGE_META } from '../routines.js';
 import { sync, flush, syncNow, hasPending, clearSyncState, stopSync } from '../sync.js';
@@ -93,6 +95,7 @@ export default {
       ${accountCard()}
       ${v2Cards(s)}
       ${coachCard(s)}
+      ${calendarsCard()}
       ${pushCard()}
       <section class="card"><div class="eyebrow">Profile</div>${field('Name', h`<input class="input" data-input="name" value="${p.name}" maxlength="40" placeholder="What should I call you?">`)}
         <div class="field"><span class="field-label">Appearance</span>${seg('theme', [['dark', 'Dark'], ['light', 'Light'], ['system', 'System']], s.theme)}</div>
@@ -134,6 +137,7 @@ export default {
       <p class="center muted tiny">LifeOS 2 · local-first · estimates, not medical advice</p></div>`;
   },
   mount(root) {
+    if (!root._gcalBound) { root._gcalBound = true; GC.onGcal(() => { if (document.body.dataset.screen === 'you') rerender(); }); }
     if (P.statusStale()) P.refreshStatus().then((changed) => { if (changed && document.body.dataset.screen === 'you') rerender(); });
     if (!root._youBound) { // viewEl persists across screens: bind once
       root._youBound = true; bindRuleList(root, () => rerender());
@@ -170,7 +174,7 @@ export default {
   actions: {
     'trk-new': () => builderSheet(), 'trk-hub': () => navigate('#/trackers'), 'rule-new': () => newRuleSheet({ onSaved: () => rerender() }),
     'v-check': async () => { toast('Checking…'); const r = await checkNow(); toast(r === 'ready' ? 'An update is ready' : r === 'current' ? 'You’re up to date' : 'Couldn’t check right now', { tone: r === 'error' ? 'warn' : '' }); rerender(); },
-    'customize-today': () => customizeTodaySheet(),
+    'customize-today': () => customizeTodaySheet(), 'gcal-connect': () => connectSheet(), 'gcal-sync': () => gcalSyncNow(), 'gcal-remove': (el) => gcalRemove(el.dataset.id, el.dataset.name),
     'push-on': async () => { pushBusy = true; rerender(); try { await P.enable(); toast('Background reminders are on'); } catch (e) { toast(e.message || 'Couldn’t turn on', { tone: 'warn', duration: 7000 }); } pushBusy = false; rerender(); },
     'push-off': async () => { pushBusy = true; rerender(); await P.disable(); pushBusy = false; toast('Background reminders are off'); rerender(); },
     'push-test': async () => { try { const r = await P.sendTest(); toast(`Test sent to ${r.delivered} device${r.delivered === 1 ? '' : 's'} — it should arrive in a few seconds`); } catch (e) { toast(e.message || 'Test failed', { tone: 'warn' }); } },
