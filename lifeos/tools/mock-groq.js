@@ -3,9 +3,19 @@
 import { createServer } from 'node:http';
 const port = Number(process.argv[2]) || 8130;
 const out = (obj) => ({ choices: [{ message: { content: JSON.stringify(obj) } }] });
+let flaky = 'none'; let calls = [];
 createServer((req, res) => {
+  const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/__flaky') { flaky = u.searchParams.get('m') || 'none'; calls = []; res.end('ok'); return; }
+  if (u.pathname === '/__calls') { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(calls)); return; }
   let b = ''; req.on('data', (c) => { b += c; }); req.on('end', () => {
-    const j = b ? JSON.parse(b) : {}; const sys = (j.messages || []).map((m) => m.content).join('\n');
+    const j = b ? JSON.parse(b) : {};
+    calls.push({ model: j.model, fmt: j.response_format?.type || '' });
+    const bad = (failed) => { res.statusCode = 400; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ error: { message: "Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.", type: 'invalid_request_error', code: 'json_validate_failed', failed_generation: failed } })); };
+    if (flaky === 'strict' && j.response_format?.type === 'json_schema') return bad('{"oops":');
+    if (flaky === 'salvage' && j.response_format?.type === 'json_schema') return bad('{"message":"salvaged reply"}');
+    if (flaky === 'model' && j.model === 'openai/gpt-oss-20b') return bad('not json');
+    if (flaky === 'all') return bad('nope'); const sys = (j.messages || []).map((m) => m.content).join('\n');
     let r;
     if (/You design a personal tracker/.test(sys) && /reduce my weight to 80/i.test((j.messages || []).filter((m) => m.role === 'user').map((m) => m.content).join(' '))) r = out({ name: 'Weight', icon: 'target', color: 'blue', description: 'Reduce weight to 80 kg', keywords: ['weight', 'weigh'], fields: [{ label: 'Weight', type: 'number', unit: 'kg', min: 0, max: 0, options: [], agg: 'last', targetValue: 80, targetPeriod: 'goal', targetDir: 'atmost', quick: [], startValue: 0, targetWeeks: 8 }], reminders: [], rules: [], note: 'A goal to reach 80 kg, measured from your first reading.' });
     else if (/opening line of a short check-in/.test(sys)) { let u = {}; try { u = JSON.parse((j.messages || []).filter((m) => m.role === 'user').pop().content); } catch { /* ignore */ } r = out({ message: `${u.line || 'Heads up.'} Let’s make it a good one.` }); }

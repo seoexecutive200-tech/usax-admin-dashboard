@@ -1,11 +1,17 @@
 {
   "latest": {
-    "version": "2.7.1",
+    "version": "2.7.2",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.7.1",
-    "summary": "Clearer when AI is off, a one-step “Turn on AI”, and a day planner that skips schedule-like tasks.",
+    "title": "LifeOS 2.7.2",
+    "summary": "Fixes “Failed to validate JSON” AI errors — the app now recovers automatically.",
     "notes": [
+      {
+        "since": "2.7.2",
+        "icon": "brain",
+        "title": "AI that recovers from format errors",
+        "text": "When the AI answers in a format the app can’t read, LifeOS now salvages the reply, retries in a simpler mode, and falls back to a more dependable model — instead of showing an error. Fixes failures while designing trackers and planning your day."
+      },
       {
         "since": "2.7.1",
         "icon": "brain",

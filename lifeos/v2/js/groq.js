@@ -11,6 +11,9 @@ const KEY_SLOT = 'lifeos.groqKey'; // localStorage — deliberately outside Inde
 let memoryKey = null;
 let cooldownUntil = 0;
 const noStrict = new Set();
+const strictFails = new Map();
+// If the chosen model keeps failing, a more dependable one finishes the job (only used when the first model can't produce valid JSON).
+const FALLBACK_MODELS = ['llama-3.3-70b-versatile'];
 
 export class AIError extends Error {
   constructor(kind, message, extra = {}) { super(message); this.kind = kind; Object.assign(this, extra); }
@@ -60,7 +63,7 @@ function normalize(status, body, headers) {
     return new AIError('rate', 'Groq is rate limiting requests. I will wait before trying again.', { retryAfter: Number.isFinite(ra) && ra > 0 ? ra : 8 });
   }
   if (status >= 500) return new AIError('server', 'Groq had a temporary problem.');
-  if (status === 400 || status === 404 || status === 422) return new AIError('bad_request', msg || 'Groq rejected the request. Check the model ID.', { raw: msg });
+  if (status === 400 || status === 404 || status === 422) return new AIError('bad_request', msg || 'Groq rejected the request. Check the model ID.', { raw: msg, code: String(body?.error?.code || ''), failed: typeof body?.error?.failed_generation === 'string' ? body.error.failed_generation.slice(0, 20000) : '' });
   return new AIError('server', `Unexpected Groq response (${status}).`);
 }
 
@@ -127,23 +130,31 @@ export async function askJSON({ system, user, schemaName, signal, timeoutMs = 30
   const strictFmt = { type: 'json_schema', json_schema: { name: schemaName, strict: true, schema } };
   const looseSys = { role: 'system', content: `Respond with ONE JSON object only, matching this JSON Schema (all fields required):\n${JSON.stringify(schema)}` };
 
-  const run = async (messages, strict) => {
+  const run = async (messages, strict, m = model) => {
     const data = await withRetry({
-      model, messages: strict ? messages : [looseSys, ...messages], temperature: s.temperature ?? 0.2,
+      model: m, messages: strict ? messages : [looseSys, ...messages], temperature: s.temperature ?? 0.2,
       responseFormat: strict ? strictFmt : { type: 'json_object' }, signal, timeoutMs,
     });
     await store.setSettings({ lastSuccessfulAiCall: nowISO() });
     return extract(data);
   };
+  const formatFail = (e) => e.kind === 'bad_request' && /json_validate_failed|validate JSON|failed_generation/i.test(`${e.code || ''} ${e.raw || ''}`);
+  const usable = (txt) => { const p = txt && parseJSONLoose(txt); return p && !validate(withDefaults(p, schema), schema).length; };
+  // strict schema → looser JSON mode → a dependable backup model. Groq's own error carries what the model wrote, which we salvage when it's valid.
   const attempt = async (messages) => {
-    let text;
-    if (!noStrict.has(model)) {
-      try { text = await run(messages, true); } catch (e) {
-        if (e.kind === 'bad_request' && /json_schema|response_format|structured|strict/i.test(e.raw || '')) { noStrict.add(model); text = await run(messages, false); }
-        else throw e;
+    let lastErr;
+    for (const m of [model, ...FALLBACK_MODELS.filter((x) => x !== model)]) {
+      for (const strict of noStrict.has(m) ? [false] : [true, false]) {
+        try { return await run(messages, strict, m); } catch (e) {
+          lastErr = e;
+          if (e.kind !== 'bad_request') throw e;
+          if (/json_schema|response_format|structured|strict/i.test(e.raw || '') && !formatFail(e)) { noStrict.add(m); continue; }
+          if (formatFail(e)) { if (usable(e.failed)) return e.failed; if (strict) { const n = (strictFails.get(m) || 0) + 1; strictFails.set(m, n); if (n >= 2) noStrict.add(m); } continue; }
+          throw e;
+        }
       }
-    } else text = await run(messages, false);
-    return text;
+    }
+    throw lastErr;
   };
 
   let text = await attempt(base);
@@ -172,6 +183,7 @@ export async function testConnection() {
 
 export function describeError(e) {
   if (!(e instanceof AIError)) return 'AI insight unavailable - your data is saved.';
+  if (e.kind === 'bad_request' && /json_validate_failed|validate JSON|failed_generation/i.test(`${e.code || ''} ${e.raw || ''}`)) return 'The AI answered in the wrong format and I couldn’t fix it automatically. Try again — or pick another model in You → AI & API.';
   if (e.kind === 'nokey') return 'AI is not set up yet - your data is saved.';
   if (e.kind === 'limit') return e.message;
   if (e.kind === 'auth') return 'AI key problem - your data is saved.';

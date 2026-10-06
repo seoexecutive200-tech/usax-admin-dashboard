@@ -15,7 +15,7 @@ createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   try {
     if (url.pathname === '/__bump') { bump = url.searchParams.get('v'); res.end('ok'); return; }
-    if (bump && url.pathname === '/v2/service-worker.js') { const t = (await readFile(join(root, 'v2/service-worker.js'), 'utf8')).replace('lifeos2-v2.7.1', `lifeos2-v${bump}`); res.setHeader('Content-Type', 'text/javascript'); res.setHeader('Cache-Control', 'no-cache'); return res.end(t); }
+    if (bump && url.pathname === '/v2/service-worker.js') { const t = (await readFile(join(root, 'v2/service-worker.js'), 'utf8')).replace('lifeos2-v2.7.2', `lifeos2-v${bump}`); res.setHeader('Content-Type', 'text/javascript'); res.setHeader('Cache-Control', 'no-cache'); return res.end(t); }
     if (url.pathname === '/__ics/sample.ics') { // test hook: a calendar feed with dates relative to now
       const z = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''); const day = (n, h, m = 0) => { const d = new Date(); d.setUTCDate(d.getUTCDate() + n); d.setUTCHours(h, m, 0, 0); return d; };
       const dd = (n) => { const d = day(n, 0); return z(d).slice(0, 8); };
