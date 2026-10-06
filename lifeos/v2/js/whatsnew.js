@@ -1,5 +1,6 @@
 // Single source of truth for "what's new in LifeOS 2" (also mirrored into releases.json for the update card).
 export const WHATS_NEW = [
+  { since: '2.5.0', icon: 'brain', title: 'Ask me questions', text: 'Add a thought in plain words and LifeOS asks a few focused follow-up questions — what to measure, how often, a target, a date — then builds a better tracker, goal, note, task, event or routine. Tap an answer or type your own, or skip any of it.' },
   { since: '2.4.0', icon: 'target', title: 'Focus timer', text: 'Turn focus on when you need to concentrate. Pick a length (or open-ended), keep reminders quiet, and get a notification when time is up. Sessions are saved and can feed a “Focus time” tracker.' },
   { since: '2.4.0', icon: 'calendar', title: 'Month calendar with everything', text: 'Plan → Month shows events, tasks, routines, tracker reminders, focus sessions and goal dates in one place. Tap anything to turn it into a task, a tracker, a reminder, a focus session or an event.' },
   { since: '2.3.1', icon: 'bell', title: 'Background reminders, made visible', text: 'You → Background reminders now shows whether the reminder clock is running, and a reminder that already reached you in the background no longer pops up a second time when you open the app.' },

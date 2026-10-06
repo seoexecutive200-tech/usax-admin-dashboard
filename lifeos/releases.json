@@ -1,11 +1,17 @@
 {
   "latest": {
-    "version": "2.4.0",
+    "version": "2.5.0",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.4",
-    "summary": "A focus timer, and a month calendar that shows everything and lets you create tasks, trackers and reminders from any item.",
+    "title": "LifeOS 2.5",
+    "summary": "Add a thought in plain words and LifeOS asks a few smart follow-up questions to build it better.",
     "notes": [
+      {
+        "since": "2.5.0",
+        "icon": "brain",
+        "title": "Ask me questions",
+        "text": "Add a thought in plain words and LifeOS asks a few focused follow-up questions — what to measure, how often, a target, a date — then builds a better tracker, goal, note, task, event or routine. Tap an answer or type your own, or skip any of it."
+      },
       {
         "since": "2.4.0",
         "icon": "target",

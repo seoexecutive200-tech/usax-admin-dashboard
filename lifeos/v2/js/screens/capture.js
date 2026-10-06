@@ -10,6 +10,7 @@ import { requiresConfirm, execute } from '../actions.js';
 import { back, navigate } from '../router.js';
 import * as adv from '../advisor.js';
 import { commit, quickLogSheet, eventFormSheet, proposeAction } from '../sheets.js';
+import { refineSheet, shouldAsk } from '../refine.js';
 import { fmtDate, fmtTime, fmtRelative, addDays } from '../util.js';
 
 let unsub = null; let pending = []; let saved = []; let safety = null; let busy = false; let note = ''; let root = null;
@@ -35,7 +36,7 @@ function paint() {
     ${saved.length ? h`<div class="eyebrow">Saved just now</div>${saved.map((s, i) => h`<div class="saved row between"><span>${icon('check', 16, 'c-green')} ${s.summary}</span><button class="btn btn-sm" data-act="undo" data-i="${i}">Undo</button></div>`)}` : ''}`);
 }
 
-async function process(text) {
+async function process(text, { noRefine = false } = {}) {
   if (!text.trim() || busy) return;
   busy = true; pending = []; safety = null; paint();
   const cls = await classifyHealth(text);
@@ -53,6 +54,9 @@ async function process(text) {
     } catch (e) { toast(describeError(e), { tone: 'warn' }); }
   }
   busy = false;
+  if (!noRefine && cands.every((c) => c.fallback) && shouldAsk(text)) { // nothing recognised: ask follow-up questions instead of just filing a note
+    paint(); root.querySelector('#cap-text').value = ''; refineSheet({ text, onFallback: () => process(text, { noRefine: true }) }); return;
+  }
   const toSave = []; const toAsk = [];
   for (const c of cands) (isAutoSave(c) && !requiresConfirm(candidateToAction(c), true) ? toSave : toAsk).push(c);
   for (const c of toSave) {
@@ -82,7 +86,7 @@ export default {
       <header class="top"><button class="icon-btn" data-act="back" aria-label="Back">${icon('chevronL', 22)}</button><h1 class="grow center-t">Capture</h1><span style="width:44px"></span></header>
       <form class="cap-box card" data-submit="go"><label class="sr-only" for="cap-text">What happened or what’s coming?</label>
         <textarea id="cap-text" class="cap-input" rows="3" maxlength="600" placeholder="Meeting with David Friday 3pm&#10;Feeling stressed 8/10&#10;Paid 3500 bike EMI" autofocus></textarea>
-        <div class="row between"><div class="row gap">${SR ? h`<button type="button" class="icon-btn" data-act="mic" aria-label="Dictate" id="mic">${icon('mic', 22)}</button>` : ''}</div><button class="btn btn-primary" type="submit">${icon('sparkle', 16)} Understand</button></div></form>
+        <div class="row between"><div class="row gap">${SR ? h`<button type="button" class="icon-btn" data-act="mic" aria-label="Dictate" id="mic">${icon('mic', 22)}</button>` : ''}</div><span class="row gap"><button type="button" class="btn" data-act="refine">Ask me questions</button><button class="btn btn-primary" type="submit">${icon('sparkle', 16)} Understand</button></span></div></form>
       <div class="chips scroll" role="group" aria-label="Quick log">${T.allTrackers().map((t) => h`<button class="chip-btn big" data-act="trkchip" data-id="${t.id}"><span style="color:${T.COLOR_VAR[t.color]}">${icon(t.icon, 18)}</span> ${t.name}</button>`)}${CHIPS.filter(([k]) => store.settings().mode !== 'custom' || ['event', 'task', 'note'].includes(k)).map(([k, l, ic]) => h`<button class="chip-btn big" data-act="chip" data-k="${k}">${icon(ic, 18)} ${l}</button>`)}<button class="chip-btn big" data-act="newtrk">${icon('sparkle', 18)} New tracker</button></div>
       <p class="muted small">Obvious logs save right away with Undo. Events, tasks and anything ambiguous show “Understood as” first. ${aiReady() ? '' : 'Capture works fully without AI.'}</p>
       <div id="results" class="stack" aria-live="polite"></div>
@@ -99,6 +103,7 @@ export default {
   },
   actions: {
     back: () => back('#/today'), go: () => process(root.querySelector('#cap-text').value),
+    refine: () => { const t = root.querySelector('#cap-text').value.trim(); if (t.length < 4) { toast('Type something first', { tone: 'warn' }); return; } root.querySelector('#cap-text').value = ''; refineSheet({ text: t, onFallback: () => process(t, { noRefine: true }) }); },
     chip: (el) => quickLogSheet(el.dataset.k),
     mic: (el) => {
       if (!SR) return; const rec = new SR(); rec.lang = store.profile().locale || 'en-US'; rec.interimResults = false;

@@ -61,6 +61,7 @@ function coachCard(s) {
   return h`<section class="card"><div class="eyebrow">Coaching style</div>
     <div class="field"><span class="field-label">Tone</span>${seg('tone', Object.entries(TONES).map(([k, v]) => [k, v[0]]), tone)}<small class="muted">${TONES[tone][1]}. Applies to reminders, nudges and how the AI words its advice. Numbers and facts never change.</small></div>
     <div class="card inset"><div class="tiny muted">Example reminder</div><b>${ex.title}</b>${ex.body ? h`<div class="small muted">${ex.body}</div>` : ''}</div>
+    <label class="check"><input type="checkbox" data-change="followups" ${s.askFollowups !== false ? 'checked' : ''}><span>Ask follow-up questions when I add plain text <small class="muted">(needs AI)</small></span></label>
     <p class="tiny muted">How often the advisor speaks is set under Advisor mode above.</p></section>`;
 }
 function clockLine(st) {
@@ -162,6 +163,7 @@ export default {
       const r = await Notification.requestPermission(); await store.setSettings({ notifications: r === 'granted' }); if (r !== 'granted') { el.checked = false; toast('Permission not granted — in-app reminders still work'); }
     },
     aienabled: (el) => store.setSettings({ aiEnabled: el.checked }),
+    followups: (el) => store.setSettings({ askFollowups: el.checked }),
     model: (el) => { const v = el.value.trim(); if (v) { store.setSettings({ modelId: v }); toast('Model updated'); } },
     temp: (el) => store.setSettings({ temperature: Number(el.value) }),
   },

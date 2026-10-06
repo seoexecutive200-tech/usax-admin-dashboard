@@ -46,7 +46,7 @@ export function parseRoutineText(text) {
 export const summary = (d) => `${R.DAY_ORDER.filter((x) => d.days.includes(x)).map((x) => R.DAY_NAMES[x]).join(', ')} · ${R.fmtHM(d.start)}–${R.fmtHM(d.end)}`;
 const guidance = (d) => [d.nudges.water.on && `water every ${d.nudges.water.every} min`, d.nudges.break.on && `break every ${d.nudges.break.every} min`, d.nudges.lunch.on && `lunch ${R.fmtHM(d.nudges.lunch.at)}`, d.nudges.eyes.on && 'eye rests', d.nudges.wrap.on && 'wrap-up', ...d.nudges.custom.map((c) => `${R.fmtHM(c.at)} ${c.text}`)].filter(Boolean).join(' · ') || 'No guidance — just the schedule';
 
-export function describeRoutineSheet() {
+export function describeRoutineSheet({ text = '', auto = false } = {}) {
   openSheet({ title: 'Describe your routine', tall: true,
     body: h`<div class="stack"><p class="muted small">Say it the way you’d tell a friend. You can include several routines, reminders and guidance — you’ll review everything before it’s saved.</p>
       <textarea class="input" id="rdesc" rows="4" maxlength="800" placeholder="e.g. Office Mon–Sat 10 to 6 with water and a break every 90 minutes. Gym Mon, Wed, Fri 7–8am. Wind-down weekdays 10–11:30pm, remind me to put the phone away at 11."></textarea>
@@ -79,6 +79,7 @@ export function describeRoutineSheet() {
         const tip = document.createElement('p'); tip.className = 'tiny muted'; tip.textContent = 'You can fine-tune any routine afterwards from Manage → Edit.'; box.append(tip);
         out.append(box);
       };
+      if (text) ta.value = text;
       go.onclick = async () => {
         const d = ta.value.trim(); if (d.length < 6) { toast('Describe your routine first', { tone: 'warn' }); return; }
         go.disabled = true; const label = go.textContent; go.textContent = 'Working…';
@@ -90,5 +91,6 @@ export function describeRoutineSheet() {
         } catch (e) { toast(describeError(e), { tone: 'warn' }); }
         go.disabled = false; go.textContent = label;
       };
+      if (auto && text) go.click();
     } });
 }

@@ -70,26 +70,30 @@ export function entrySheet(t, { entry = null, prefill = {}, source = 'manual', r
 }
 
 // ---------- builder: describe it ----------
+export async function designAndReview(d, onDraft) {
+  const r = await askJSON({ system: `${CORE_SYSTEM}\n\n${TRACKER_DESIGNER}`, user: { description: d, existingTrackers: T.allTrackers().map((t) => t.name), builtInSupported: true }, schemaName: 'tracker', timeoutMs: 30000 });
+  const draft = { ...r, origin: 'ai', fields: r.fields.map((f) => ({ ...f, target: f.targetValue > 0 ? { value: f.targetValue, period: f.targetPeriod, dir: f.targetDir, ...(f.targetPeriod === 'goal' ? { start: f.startValue > 0 ? f.startValue : undefined, by: f.targetWeeks > 0 ? dayKey(addDays(new Date(), Math.round(f.targetWeeks * 7))) : undefined } : {}) } : null, agg: f.targetPeriod === 'goal' && f.targetValue > 0 ? 'last' : f.agg })) };
+          onDraft?.(); editorSheet(draft, { aiNote: r.note, rulesDraft: r.rules, nl: d });
+}
 export function builderSheet({ text = '' } = {}) {
   const ai = aiReady();
   openSheet({
     title: 'New tracker', tall: true,
     body: h`<div class="stack"><p class="muted small">Describe anything you want to keep track of, in your own words. ${ai ? 'LifeOS will design the tracker; you review and edit it before anything is saved.' : 'AI isn’t available, so build it yourself or start from a template.'}</p>
       <textarea class="input" id="desc" rows="5" maxlength="600" placeholder="e.g. I’m training for a half marathon — log my runs (distance and how hard it felt), sore spots, and remind me to rest if I run four days in a row." autofocus>${text}</textarea>
-      <div class="row between"><div>${SR ? h`<button type="button" class="icon-btn" data-mic aria-label="Dictate">${icon('mic', 22)}</button>` : ''}</div><div class="row gap wrap end"><button class="btn" data-manual>Build it myself</button><button class="btn btn-primary" data-ai ${ai ? '' : 'disabled'}>${icon('sparkle', 16)} Design it</button></div></div>
+      <div class="row between"><div>${SR ? h`<button type="button" class="icon-btn" data-mic aria-label="Dictate">${icon('mic', 22)}</button>` : ''}</div><div class="row gap wrap end"><button class="btn" data-manual>Build it myself</button><button class="btn" data-ask ${ai ? '' : 'disabled'}>Ask me questions</button><button class="btn btn-primary" data-ai ${ai ? '' : 'disabled'}>${icon('sparkle', 16)} Design it</button></div></div>
       ${usingHosted() ? h`<p class="tiny muted">Uses your included AI (limited per day).</p>` : ''}
       <div class="eyebrow">Or start from a template</div><div class="tpl-grid">${T.TEMPLATES.map((tp, i) => h`<button class="list-btn" data-tpl="${i}"><span class="t-ic lead" style="color:${T.COLOR_VAR[tp.color]}">${icon(tp.icon, 20)}</span><span><b>${tp.name}</b><small>${tp.description}</small></span></button>`)}</div>
       <button class="link" data-import>${icon('upload', 14)} Import a shared template</button><input type="file" id="tplfile" accept="application/json,.json" hidden></div>`,
     onOpen(s) {
       const ta = s.el.querySelector('#desc');
       s.el.querySelector('[data-manual]').onclick = () => { s.close(); editorSheet({ name: ta.value.trim().slice(0, 40), fields: [{ label: 'Value', type: 'number' }] }); };
+      s.el.querySelector('[data-ask]').onclick = () => { const d = ta.value.trim(); if (d.length < 6) { toast('Type a few words first, then I’ll ask questions', { tone: 'warn' }); return; } s.close(); setTimeout(() => import('./refine.js').then((m) => m.refineSheet({ text: d, onFallback: () => builderSheet({ text: d }) })), 250); };
       s.el.querySelector('[data-ai]').onclick = async (e) => {
         const d = ta.value.trim(); if (d.length < 8) { toast('Say a little more about what you want to track', { tone: 'warn' }); return; }
         e.target.disabled = true; e.target.textContent = 'Designing…';
         try {
-          const r = await askJSON({ system: `${CORE_SYSTEM}\n\n${TRACKER_DESIGNER}`, user: { description: d, existingTrackers: T.allTrackers().map((t) => t.name), builtInSupported: true }, schemaName: 'tracker', timeoutMs: 30000 });
-          const draft = { ...r, origin: 'ai', fields: r.fields.map((f) => ({ ...f, target: f.targetValue > 0 ? { value: f.targetValue, period: f.targetPeriod, dir: f.targetDir, ...(f.targetPeriod === 'goal' ? { start: f.startValue > 0 ? f.startValue : undefined, by: f.targetWeeks > 0 ? dayKey(addDays(new Date(), Math.round(f.targetWeeks * 7))) : undefined } : {}) } : null, agg: f.targetPeriod === 'goal' && f.targetValue > 0 ? 'last' : f.agg })) };
-          s.close(); editorSheet(draft, { aiNote: r.note, rulesDraft: r.rules, nl: d });
+          await designAndReview(d, () => s.close());
         } catch (err) { toast(describeError(err), { tone: 'warn' }); e.target.disabled = false; e.target.innerHTML = ''; e.target.append('Design it'); }
       };
       s.el.querySelectorAll('[data-tpl]').forEach((b) => b.addEventListener('click', () => { const tp = T.TEMPLATES[Number(b.dataset.tpl)]; s.close(); editorSheet({ ...structuredClone(tp), origin: 'template' }, { fromTemplate: true }); }));

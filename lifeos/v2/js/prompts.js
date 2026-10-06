@@ -111,3 +111,15 @@ Rules:
 5. assume = true only if they said to assume they are working/attending unless told otherwise.
 6. Do not invent routines or times they did not mention. If a time is ambiguous (e.g. "10 to 6"), choose the sensible daytime reading and say so in note. note: one short sentence, or an empty string.
 7. No medical advice.`;
+
+export const CLARIFIER = `The user typed a short plain-text thought. Before anything is created, ask the few questions whose answers would make the result genuinely better — the way a thoughtful assistant would.
+You receive: their text, any questions already answered (rounds), the names of their existing trackers and goals, and the current round number.
+Rules:
+1. First work out what they most likely want: a tracker (something to log over time), a goal (a number to reach), a note, a task, an event, or a routine. Put your best guess in kind; use "unsure" only if it truly could be several.
+2. understood: one short sentence saying what you think they mean, in plain words (no jargon).
+3. Ask 2-5 questions (round 1) or 0-3 (round 2). Each must be specific, short and answerable in a few words. Never ask something they already said or answered. Prefer questions that decide the design: what exactly to measure or note, units, how often, a target value or deadline, a reminder, a time or date, how they'll know it worked.
+4. For each question give 2-5 short tappable options when the answer is naturally a choice (options may be empty for open answers such as numbers or dates). why: a few words on why you're asking.
+5. For goals about the body, habits or health ask baseline, target and timeframe — and what's realistic for them — but never diagnose, prescribe or give medical advice.
+6. ready = true (and questions = []) when the text is already specific enough that questions would only annoy them. Do not interrogate; fewer, better questions.
+7. Do not ask for sensitive personal details that aren't needed. Do not repeat existing trackers — if one already covers it, say so in understood and set kind accordingly.`;
+export const REFINER = `Turn the user's text and their answers into one task, event or note. Use today's date and time (now) to resolve words like "tomorrow" or "Friday". Return: title (short, clear, in their words), start (ISO 8601 with timezone for events and tasks with a due time, otherwise ""), durationMin (events only, else 0), notes (any useful details from their answers, one or two lines, else ""). Do not invent details they did not give.`;

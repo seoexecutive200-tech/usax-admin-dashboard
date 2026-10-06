@@ -24,7 +24,7 @@ export function focusStartSheet({ label = '', taskId = null, minutes = 25 } = {}
   let mins = minutes;
   openSheet({ title: 'Start focus', body: h`<form class="stack" id="fz-form" novalidate>
       <label class="field"><span class="field-label">What are you focusing on?</span><input class="input" name="label" maxlength="80" value="${label}" placeholder="e.g. Write the report" autofocus></label>
-      <div class="field"><span class="field-label">For how long?</span><div class="chips" role="group" aria-label="Duration">${PRESETS.map((m) => h`<button type="button" class="chip-btn ${m === minutes ? 'on' : ''}" data-m="${m}">${m} min</button>`)}<button type="button" class="chip-btn ${minutes === 0 ? 'on' : ''}" data-m="0">Open-ended</button></div></div>
+      <div class="field"><span class="field-label">For how long?</span><div class="chips" role="group" aria-label="Duration">${PRESETS.map((m) => h`<button type="button" class="chip-btn pick ${m === minutes ? 'on' : ''}" data-m="${m}">${m} min</button>`)}<button type="button" class="chip-btn pick ${minutes === 0 ? 'on' : ''}" data-m="0">Open-ended</button></div></div>
       <label class="field"><span class="field-label">Or a custom length (minutes)</span><input class="input" type="number" name="custom" min="1" max="600" inputmode="numeric" placeholder="e.g. 35"></label>
       <label class="check"><input type="checkbox" name="quiet" checked><span>Keep reminders quiet while I focus</span></label>
       <label class="check"><input type="checkbox" name="track" checked><span>Add this time to a “Focus time” tracker</span></label>
