@@ -7,6 +7,7 @@ import { aiReady, askJSON, describeError } from './groq.js';
 import { CORE_SYSTEM, DAY_PLANNER } from './prompts.js';
 import { h, icon, openSheet, toast } from './ui.js';
 import { dayKey, fmtTime } from './util.js';
+import { aiOff, aiOffNotice } from './ai-setup.js';
 
 const BUFFER = 10 * 60000;
 const hhmm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -22,7 +23,11 @@ export function freeWindows(now = new Date(), { endHour = 21, startHour = 7 } = 
   if (cur < +end) out.push([cur, +end]);
   return out.filter(([s, e]) => e - s >= 20 * 60000).map(([s, e]) => ({ start: new Date(s), end: new Date(e) }));
 }
-export const openTasks = (now = new Date()) => store.all('tasks').filter((t) => t.status !== 'done' && (!t.due || dayKey(t.due) <= dayKey(now))).sort((a, b) => (a.due || '9').localeCompare(b.due || '9')).slice(0, 8);
+// a "task" like “Office from 10 am to 6 pm” is really a schedule, not something to do — it belongs in Routines
+export const looksLikeSchedule = (title) => /\b\d{1,2}(:\d{2})?\s*(am|pm)?\s*(-|–|to|until|till)\s*\d{1,2}(:\d{2})?\s*(am|pm)?\b/i.test(String(title)) && /\b(am|pm|from|office|work|shift|hours)\b/i.test(String(title));
+const allOpen = (now) => store.all('tasks').filter((t) => t.status !== 'done' && (!t.due || dayKey(t.due) <= dayKey(now))).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+export const openTasks = (now = new Date()) => allOpen(now).filter((t) => !looksLikeSchedule(t.title)).slice(0, 8);
+export const skippedTasks = (now = new Date()) => allOpen(now).filter((t) => looksLikeSchedule(t.title));
 
 /** Simple planner (no AI): 45-minute focus blocks on your tasks, a 10-minute break after each, inside the free windows. */
 export function localPlan(windows, tasks) {
@@ -51,7 +56,7 @@ export function planDaySheet() {
     async onOpen(s) {
       const win = wins.map((w) => `${hhmm(w.start)}–${hhmm(w.end)}`); let summary = ''; let blocks = []; let usedAI = false; let err = '';
       if (!wins.length) { s.setBody(h`<div class="stack"><p>There’s no free time left today between your events — nothing to plan.</p><button class="btn" data-x>Close</button></div>`); s.el.querySelector('[data-x]').onclick = s.close; return; }
-      if (!tasks.length) { s.setBody(h`<div class="stack"><p>You don’t have any open tasks for today, so there’s nothing to schedule yet.</p><p class="small muted">Add a task in Plan, or tell me what you want to get done in Capture.</p><button class="btn" data-x>Close</button></div>`); s.el.querySelector('[data-x]').onclick = s.close; return; }
+      if (!tasks.length) { s.setBody(h`<div class="stack"><p>You don’t have any open tasks to schedule yet.</p>${skippedTasks(now).length ? h`<p class="small muted">“${skippedTasks(now)[0].title}” looks like your schedule rather than a to-do, so I left it out. Office hours belong in Routines.</p>` : ''}<p class="small muted">Add a task in Plan, or tell me what you want to get done in Capture.</p><button class="btn" data-x>Close</button></div>`); s.el.querySelector('[data-x]').onclick = s.close; return; }
       if (aiReady()) {
         try {
           const st = A.currentState(now); const events = A.eventsOnDay(dayKey(now)).filter((e) => !e.allDay).map((e) => ({ title: e.title, start: hhmm(new Date(e.start)), end: hhmm(new Date(e.end || e.start)) }));
@@ -61,8 +66,11 @@ export function planDaySheet() {
       }
       if (!blocks.length) { blocks = localPlan(wins, tasks); summary = usedAI ? summary : 'A simple plan: one focus block per task, with short breaks, inside your free time.'; }
       const keep = new Set(blocks.map((_, i) => i));
-      const draw = () => s.setBody(h`<div class="stack">${err ? h`<p class="small err-t">${err} — here’s a simple plan instead.</p>` : ''}<div class="card inset"><div class="eyebrow">${icon('sparkle', 12)} ${usedAI ? 'Your plan' : 'A simple plan'}</div><p>${summary}</p></div>
+      const skipped = skippedTasks(now);
+      const draw = () => s.setBody(h`<div class="stack">${err ? h`<p class="small err-t">${err} — here’s a simple plan instead.</p>` : ''}${aiOff() ? aiOffNotice('This is the basic planner') : ''}<div class="card inset"><div class="eyebrow">${icon('sparkle', 12)} ${usedAI ? 'Your plan' : 'A simple plan'}</div><p>${summary}</p></div>
         <div class="eyebrow">Free time today: ${win.join(' · ')}</div>
+        <p class="small muted">Planned from your ${tasks.length} open task${tasks.length === 1 ? '' : 's'}: ${tasks.slice(0, 4).map((t) => `“${t.title}”`).join(', ')}${tasks.length > 4 ? '…' : ''}. Add tasks in Plan or Capture and I’ll fit them in.</p>
+        ${skipped.length ? h`<p class="small muted">Left out ${skipped.map((t) => `“${t.title}”`).join(', ')} — that looks like your schedule rather than a to-do. Office hours belong in Routines.</p>` : ''}
         ${blocks.map((b, i) => h`<label class="card inset rv"><span class="row gap center"><input type="checkbox" data-i="${i}" ${keep.has(i) ? 'checked' : ''}><span class="grow"><b>${b.kind === 'break' ? 'Break' : b.kind === 'habit' ? b.title : `Focus: ${b.title}`}</b><div class="small muted">${fmtTime(b.start)} – ${fmtTime(new Date(+b.start + b.durationMin * 60000))} · ${b.durationMin} min</div></span></span></label>`)}
         <div class="row gap wrap end"><button class="btn" data-x>Not now</button><button class="btn btn-primary" data-add ${keep.size ? '' : 'disabled'}>Add ${keep.size} block${keep.size === 1 ? '' : 's'} to my day</button></div>
         <p class="tiny muted">Blocks are added as calendar events you can move or delete. ${usedAI ? 'Planned with AI from your free time, tasks and energy.' : ''}</p></div>`);

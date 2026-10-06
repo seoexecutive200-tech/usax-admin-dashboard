@@ -5,6 +5,7 @@ import { aiReady, askJSON, usingHosted, hosted } from './groq.js';
 import { CORE_SYSTEM, MOMENT_WRITER } from './prompts.js';
 import { lsGet, lsSet, safeJSON, dayKey } from './util.js';
 import { rerender } from './router.js';
+import { aiOff, aiOffReason, aiNoteHidden, hideAiNote } from './ai-setup.js';
 
 const prog = {}; // moment key -> { step, say }
 const snap = {}; // moment key -> the moment as first shown, so a question you've started stays put even if answering it changes the conditions
@@ -36,7 +37,7 @@ export function momentCard() {
   return h`<section class="card now" data-key="${m.key}"><div class="row between center"><div class="eyebrow">${icon('sparkle', 12)} ${m.label}</div>${m.idle ? '' : h`<span class="row gap"><button class="link" data-act="m-snooze" data-key="${m.key}">Not now</button><button class="link" data-act="m-skip" data-key="${m.key}">Skip</button></span>`}</div>
     ${p.say ? h`<p class="small muted">${p.say}</p>` : ''}${open ? h`<p class="${m.idle ? 'headline' : ''}">${open}</p>` : ''}${st.text ? h`<p class="strong">${st.text}</p>` : ''}
     ${st.chips?.length ? h`<div class="chips">${st.chips.map((c, i) => h`<button class="chip-btn big" data-act="m-chip" data-key="${m.key}" data-i="${i}">${c.l}</button>`)}</div>` : ''}
-    ${st.input ? h`<form class="row gap" data-submit="m-send" data-key="${m.key}"><input class="input grow" name="v" ${st.input.type === 'number' ? 'type="number" step="any" inputmode="decimal"' : 'type="text" maxlength="160"'} placeholder="${st.input.placeholder || ''}" aria-label="${st.text || 'Your answer'}" autocomplete="off"><button class="btn btn-primary">${m.idle ? 'Go' : 'Save'}</button>${st.skip ? h`<button type="button" class="btn" data-act="m-nosay" data-key="${m.key}">${st.skip}</button>` : ''}</form>` : ''}</section>`;
+    ${st.input ? h`<form class="row gap" data-submit="m-send" data-key="${m.key}"><input class="input grow" name="v" ${st.input.type === 'number' ? 'type="number" step="any" inputmode="decimal"' : 'type="text" maxlength="160"'} placeholder="${st.input.placeholder || ''}" aria-label="${st.text || 'Your answer'}" autocomplete="off"><button class="btn btn-primary">${m.idle ? 'Go' : 'Save'}</button>${st.skip ? h`<button type="button" class="btn" data-act="m-nosay" data-key="${m.key}">${st.skip}</button>` : ''}</form>` : ''}${aiOff() && !aiNoteHidden() && (m.idle || first) ? h`<p class="tiny muted">${icon('sparkle', 12)} ${aiOffReason()} <button class="link" data-ai-setup>Turn on AI</button> for smarter check-ins and planning. <button class="link" data-act="m-hide-ai">Hide</button></p>` : ''}</section>`;
 }
 
 async function answer(key, value, chip) {
@@ -61,5 +62,6 @@ export const momentActions = {
   'm-send': (f) => { const v = String(new FormData(f).get('v') || '').trim(); if (!v) return; answer(f.dataset.key, v); },
   'm-nosay': (el) => answer(el.dataset.key, ''),
   'm-snooze': (el) => { M.snooze(el.dataset.key, 60); delete prog[el.dataset.key]; delete snap[el.dataset.key]; rerender(); },
+  'm-hide-ai': () => { hideAiNote(7); rerender(); },
   'm-skip': (el) => { M.markHandled(el.dataset.key); delete prog[el.dataset.key]; delete snap[el.dataset.key]; rerender(); },
 };

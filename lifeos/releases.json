@@ -1,11 +1,17 @@
 {
   "latest": {
-    "version": "2.7.0",
+    "version": "2.7.1",
     "path": "v2/",
     "released": "2026-10-05",
-    "title": "LifeOS 2.7",
-    "summary": "LifeOS now pays attention: a Right-now card with questions that fit the moment, a day planner, and check-ins.",
+    "title": "LifeOS 2.7.1",
+    "summary": "Clearer when AI is off, a one-step “Turn on AI”, and a day planner that skips schedule-like tasks.",
     "notes": [
+      {
+        "since": "2.7.1",
+        "icon": "brain",
+        "title": "Clearer when AI is off",
+        "text": "Smart features now tell you when they’re running in basic mode, and “Turn on AI” takes one step. The day planner also leaves out “tasks” that are really your schedule (like office hours) and shows which tasks it used."
+      },
       {
         "since": "2.7.0",
         "icon": "sparkle",

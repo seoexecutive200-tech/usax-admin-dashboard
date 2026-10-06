@@ -1,5 +1,6 @@
 // Single source of truth for "what's new in LifeOS 2" (also mirrored into releases.json for the update card).
 export const WHATS_NEW = [
+  { since: '2.7.1', icon: 'brain', title: 'Clearer when AI is off', text: 'Smart features now tell you when they’re running in basic mode, and “Turn on AI” takes one step. The day planner also leaves out “tasks” that are really your schedule (like office hours) and shows which tasks it used.' },
   { since: '2.7.0', icon: 'sparkle', title: 'LifeOS pays attention', text: 'A “Right now” card on Today asks the one question that fits the moment — before a meeting, after it ends, your morning check-in, an evening review, a quick energy pulse, a goal you haven’t logged. Tap an answer and it does something: logs, adds a task, starts focus.' },
   { since: '2.7.0', icon: 'calendar', title: 'Plan my day', text: 'LifeOS finds the free time between your events and lays your tasks into it as focus blocks with breaks, based on your energy. Review, untick, and add it to your calendar.' },
   { since: '2.7.0', icon: 'bell', title: 'Check-in notifications', text: 'A gentle morning and evening nudge — at times you choose — that mentions what’s on your day. They respect quiet hours and your coaching tone.' },

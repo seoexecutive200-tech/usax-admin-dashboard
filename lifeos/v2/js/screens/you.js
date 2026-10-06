@@ -94,6 +94,7 @@ export default {
     return h`<div class="screen you">
       <header class="top">${logo()}<span></span></header><div class="hero"><h1>You</h1><p class="muted">Your profile, priorities, memory and settings. Everything stays on this device.</p></div>
       ${accountCard()}
+      ${!G.aiReady() ? h`<section class="card"><div class="eyebrow">${icon('sparkle', 12)} AI is off</div><p class="small">Check-ins, follow-up questions, the day planner’s priorities, goal coaching and Ask all use AI. Right now they run in a basic mode.</p><button class="btn btn-primary btn-sm" data-ai-setup>Turn on AI</button></section>` : ''}
       ${v2Cards(s)}
       ${coachCard(s)}
       ${calendarsCard()}
