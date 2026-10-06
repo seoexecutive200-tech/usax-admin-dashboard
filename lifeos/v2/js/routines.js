@@ -126,15 +126,19 @@ export async function wasPushed(tag) {
   try { return !!(tag && 'caches' in window && await caches.match(new URL(`__pushed/${encodeURIComponent(tag)}`, document.baseURI), { cacheName: 'pushed-ids' })); } catch { return false; }
 }
 const focusQuiet = () => { const f = safeJSON(lsGet('lifeos.focus2'), null); return !!(f && f.quiet && !f.pausedAt); };
+const REM = 'lifeos.remhist';
+export const reminderHistory = () => safeJSON(lsGet(REM), []);
+const logReminder = (title, body, result) => { const l = reminderHistory(); l.unshift({ ts: Date.now(), title, body: String(body || '').slice(0, 120), result }); lsSet(REM, JSON.stringify(l.slice(0, 40))); };
 export async function notify(title, body, tag) {
-  if (focusQuiet() && !String(tag || '').startsWith('focus:')) return; // reminders stay quiet during a focus session
-  if (await wasPushed(tag)) return; // already delivered by the server while the app was closed
-  if (!store.settings().notifications || !('Notification' in window) || Notification.permission !== 'granted') return;
+  if (focusQuiet() && !String(tag || '').startsWith('focus:')) { logReminder(title, body, 'held during focus'); return; } // reminders stay quiet during a focus session
+  if (await wasPushed(tag)) { logReminder(title, body, 'delivered in the background'); return; } // already delivered by the server while the app was closed
+  if (!store.settings().notifications || !('Notification' in window) || Notification.permission !== 'granted') { logReminder(title, body, 'not shown — notifications are off'); return; }
   try {
     const reg = await navigator.serviceWorker?.getRegistration?.();
     if (reg?.showNotification) await reg.showNotification(title, { body, tag, icon: '../assets/icon-192.png', badge: '../assets/icon-192.png', data: { url: './index.html#/today' } });
     else new Notification(title, { body, tag, icon: '../assets/icon-192.png' });
-  } catch { /* notifications are optional */ }
+    logReminder(title, body, 'shown');
+  } catch { logReminder(title, body, 'failed to show'); }
 }
 export function startRoutineLoop(onChange) {
   const tick = () => {

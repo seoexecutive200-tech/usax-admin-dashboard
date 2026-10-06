@@ -4,6 +4,7 @@ import { store } from './store.js';
 import { addMemory, forget as forgetMem } from './memory.js';
 import { addMinutes, clamp, isNum, nowISO, safeJSON, dayKey, fmtDate, fmtTime, addDays } from './util.js';
 import { ACTION_TYPES } from './schemas.js';
+import * as Audit from './audit.js';
 
 export const LOG_TYPES = ['mood', 'energy', 'stress', 'focus', 'sleep', 'water', 'meal', 'workout', 'outdoor', 'steps', 'caffeine', 'screen', 'note', 'expense', 'income', 'custom'];
 export const EVENT_TYPES = ['meeting', 'video_call', 'task', 'deadline', 'appointment', 'social', 'travel', 'workout', 'reminder', 'other'];
@@ -64,14 +65,14 @@ const H = {
       title, type: EVENT_TYPES.includes(p.type) ? p.type : 'other', start: start.toISOString(), end: end.toISOString(),
       timezone: store.profile().timezone, location: str(p.location, 200), notes: str(p.notes, 1000),
       importance: ['low', 'normal', 'high'].includes(p.importance) ? p.importance : 'normal',
-      prepRequired: p.prepRequired ?? (p.importance === 'high'), prepStatus: 'none', status: 'scheduled',
+      prepRequired: p.prepRequired ?? (p.importance === 'high'), prepStatus: 'none', status: 'scheduled', flex: FLEX.includes(p.flex) ? p.flex : (ai ? 'preferred' : 'fixed'),
       origin: ai ? 'ai' : 'user', aiState: ai ? (p.aiState || 'accepted') : undefined, checklist: [], rescheduleCount: 0,
     });
     return { summary: `Added “${title}” on ${fmtDate(start, { weekday: 'short', day: 'numeric', month: 'short' })} ${fmtTime(start)}`, undo: () => store.remove('events', ev.id), record: ev };
   },
   async update_event(p) {
     const prev = store.get('events', p.id) || fail('Event not found');
-    const patch = pick(p, ['title', 'type', 'location', 'notes', 'importance', 'prepRequired', 'prepStatus', 'status']);
+    const patch = pick(p, ['title', 'type', 'location', 'notes', 'importance', 'prepRequired', 'prepStatus', 'status', 'flex']);
     if (p.start) {
       const s = parseDate(p.start) || fail('Invalid start'); const dur = new Date(prev.end) - new Date(prev.start);
       patch.start = s.toISOString(); patch.end = (parseDate(p.end) || new Date(s.getTime() + dur)).toISOString();
@@ -88,12 +89,12 @@ const H = {
   async create_task(p, ctx) {
     const title = str(p.title, 160) || fail('Task needs a title');
     const due = parseDate(p.due);
-    const t = await store.save('tasks', { title, due: due ? due.toISOString() : '', status: 'open', origin: ctx.origin === 'ai' ? 'ai' : 'user', eventId: p.eventId || null, rescheduleCount: 0 });
+    const t = await store.save('tasks', { title, due: due ? due.toISOString() : '', status: 'open', origin: ctx.origin === 'ai' ? 'ai' : 'user', eventId: p.eventId || null, rescheduleCount: 0, flex: FLEX.includes(p.flex) ? p.flex : 'flexible' });
     return { summary: `Added task “${title}”`, undo: () => store.remove('tasks', t.id), record: t };
   },
   async update_task(p) {
     const prev = store.get('tasks', p.id) || fail('Task not found');
-    await store.save('tasks', { id: p.id, ...pick(p, ['title', 'status', 'due']) });
+    await store.save('tasks', { id: p.id, ...pick(p, ['title', 'status', 'due', 'flex']) });
     return { summary: 'Updated task', undo: () => store.restore('tasks', prev) };
   },
   async reschedule_task(p) {
@@ -187,9 +188,15 @@ export function parsePayload(a) {
   const p = safeJSON(a.payloadJson, null);
   return p && typeof p === 'object' ? p : {};
 }
-export async function execute(action, { origin = 'user' } = {}) {
+export const FLEX = ['fixed', 'preferred', 'flexible'];
+const MOVES = new Set(['update_event', 'reschedule_task', 'update_task']);
+export async function execute(action, { origin = 'user', why = '', evidence = [], source = '' } = {}) {
   if (!ACTION_TYPES.includes(action.type) || !H[action.type]) throw new Error('That action is not permitted.');
-  const res = await H[action.type](parsePayload(action), { origin });
+  const p = parsePayload(action);
+  // Fixed items are never moved by the AI — only by you.
+  if (origin === 'ai' && MOVES.has(action.type) && (p.start || p.due || p.end)) { const t = store.get(action.type === 'update_event' ? 'events' : 'tasks', p.id); if (t && t.flex === 'fixed') throw new Error(`“${t.title}” is marked Fixed, so I won’t move it.`); }
+  const res = await H[action.type](p, { origin });
+  if (origin === 'ai' || why) { try { await Audit.record(action, res, { source: source || (origin === 'ai' ? 'ai' : 'suggestion'), why, evidence }); } catch { /* the audit trail must never block an action */ } }
   return res;
 }
 export function describe(action) {

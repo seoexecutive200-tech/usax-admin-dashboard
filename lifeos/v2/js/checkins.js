@@ -5,7 +5,8 @@
 import { store } from './store.js';
 import * as A from './analytics.js';
 import * as F from './focus.js';
-import { execute } from './actions.js';
+import { execute as baseExecute } from './actions.js';
+const execute = (a, o) => baseExecute(a, o);
 import { CHECKINS, get as getDef } from './checkin-lib.js';
 import { addMemory } from './memory.js';
 import { dayKey, addDays, fmtTime, lsGet, lsSet, safeJSON, nowISO, isNum, mean, round } from './util.js';
@@ -53,7 +54,7 @@ function ctx(now = new Date()) {
   const key = dayKey(now); const hour = now.getHours() + now.getMinutes() / 60; const st = A.currentState(now);
   const evs = A.eventsOnDay(key).filter((e) => !e.allDay && e.type !== 'reminder');
   const tom = A.eventsOnDay(dayKey(addDays(now, 1))).filter((e) => !e.allDay && e.type !== 'reminder');
-  const tasks = store.all('tasks').filter((t) => t.status !== 'done');
+  const tasks = store.all('tasks').filter((t) => t.status !== 'done' && !t.someday);
   const c = {
     now, key, hour, st, evs, tom, tasks, cx: getCx(), mode: store.settings().advisorMode || 'balanced',
     morning: hour >= 5 && hour < 12, afternoon: hour >= 12 && hour < 18, evening: hour >= 18 && hour < 24,
@@ -344,6 +345,7 @@ function calculate(def, rec) {
 
 // ---------- the advisor's next move: silent, acknowledge, one suggestion, one follow-up, or a safety response ----------
 async function decide(def, rec, calc) {
+  const execute = (a) => baseExecute(a, { origin: 'user', source: 'check-in', why: 'You approved this suggestion from a check-in.', evidence: [`Your answer to check-in #${def.id}`] });
   const a = rec.answers; const id = def.id; const act = { action: 'stay_silent', text: '', buttons: [] };
   const say = (action, text, buttons = []) => Object.assign(act, { action, text, buttons });
   const plan = { label: 'Show a lighter plan', run: 'plan' };

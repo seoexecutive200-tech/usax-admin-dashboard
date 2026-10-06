@@ -25,7 +25,7 @@ export function freeWindows(now = new Date(), { endHour = 21, startHour = 7 } = 
 }
 // a "task" like “Office from 10 am to 6 pm” is really a schedule, not something to do — it belongs in Routines
 export const looksLikeSchedule = (title) => /\b\d{1,2}(:\d{2})?\s*(am|pm)?\s*(-|–|to|until|till)\s*\d{1,2}(:\d{2})?\s*(am|pm)?\b/i.test(String(title)) && /\b(am|pm|from|office|work|shift|hours)\b/i.test(String(title));
-const allOpen = (now) => store.all('tasks').filter((t) => t.status !== 'done' && (!t.due || dayKey(t.due) <= dayKey(now))).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+const allOpen = (now) => store.all('tasks').filter((t) => t.status !== 'done' && !t.someday && (!t.due || dayKey(t.due) <= dayKey(now))).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
 export const openTasks = (now = new Date()) => allOpen(now).filter((t) => !looksLikeSchedule(t.title)).slice(0, 8);
 export const skippedTasks = (now = new Date()) => allOpen(now).filter((t) => looksLikeSchedule(t.title));
 
@@ -79,7 +79,7 @@ export function planDaySheet() {
       s.el.addEventListener('click', async (e) => {
         if (e.target.closest('[data-x]')) { s.close(); return; }
         const add = e.target.closest('[data-add]'); if (!add) return; add.disabled = true; let n = 0;
-        for (const [i, b] of blocks.entries()) { if (!keep.has(i)) continue; try { await execute({ type: 'create_event', payload: { title: b.kind === 'break' ? 'Break' : b.kind === 'habit' ? b.title : `Focus: ${b.title}`, type: b.kind === 'focus' ? 'task' : 'other', start: b.start.toISOString(), end: new Date(+b.start + b.durationMin * 60000).toISOString(), importance: 'normal', notes: 'Planned by LifeOS' } }, { origin: 'user' }); n++; } catch { /* skip one */ } }
+        for (const [i, b] of blocks.entries()) { if (!keep.has(i)) continue; try { await execute({ type: 'create_event', payload: { title: b.kind === 'break' ? 'Break' : b.kind === 'habit' ? b.title : `Focus: ${b.title}`, type: b.kind === 'focus' ? 'task' : 'other', start: b.start.toISOString(), end: new Date(+b.start + b.durationMin * 60000).toISOString(), importance: 'normal', flex: 'flexible', notes: 'Planned by LifeOS' } }, { origin: 'user', source: 'day plan', why: b.kind === 'break' ? 'A short break after focused work, placed in free time between your events.' : `Free time between your events, matched to your energy and this task.${b.reason ? ` ${b.reason}` : ''}`, evidence: ['Your calendar free windows', 'Your open tasks', 'You approved this plan'] }); n++; } catch { /* skip one */ } }
         s.close(); toast(`${n} block${n === 1 ? '' : 's'} added to your day`);
       });
     } });

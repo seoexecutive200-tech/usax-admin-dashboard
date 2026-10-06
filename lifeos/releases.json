@@ -1,11 +1,35 @@
 {
   "latest": {
-    "version": "2.8.0",
+    "version": "2.9.0",
     "path": "v2/",
     "released": "2026-10-06",
-    "title": "LifeOS 2.8.0",
-    "summary": "Adaptive check-ins: 100 questions LifeOS can ask — only one at a time, only when useful, often none.",
+    "title": "LifeOS 2.9.0",
+    "summary": "See and undo what LifeOS changed, Fixed/Flexible events, links in your data, tidy-up, and more exports.",
     "notes": [
+      {
+        "since": "2.9.0",
+        "icon": "refresh",
+        "title": "See what LifeOS changed — and undo it",
+        "text": "You → “What LifeOS changed” lists every task or plan LifeOS added for you, why, what it was based on, and an Undo. Events can now be Fixed, Preferred or Flexible, and the AI never moves a Fixed one."
+      },
+      {
+        "since": "2.9.0",
+        "icon": "chart",
+        "title": "Possible links in your data",
+        "text": "Insights now scans what you log for same-day and next-day links — and shows only the few that hold up: how many days, how strong, how confident (and why), which days went the other way, and the exact values."
+      },
+      {
+        "since": "2.9.0",
+        "icon": "check",
+        "title": "Tidy up, and a gentle return",
+        "text": "Duplicates, tasks that keep slipping and untouched goals can be kept, set aside or archived in a tap. After a few days away you get one welcome — no wall of overdue tasks. Trackers show “logged 9 of the last 14 days” instead of a streak."
+      },
+      {
+        "since": "2.9.0",
+        "icon": "download",
+        "title": "Take your data with you",
+        "text": "Export your calendar (.ics), spreadsheets (.csv) and memories & rules, plus a history of recent reminders."
+      },
       {
         "since": "2.8.0",
         "icon": "brain",

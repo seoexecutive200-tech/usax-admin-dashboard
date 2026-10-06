@@ -15,10 +15,10 @@ export default {
   render({ id }) {
     const t = store.get('trackers', id);
     if (!t) return h`<div class="screen"><header class="top"><button class="icon-btn" data-act="back" aria-label="Back">${icon('chevronL', 22)}</button><h1 class="grow center-t">Tracker</h1><span style="width:44px"></span></header><div class="empty"><p>This tracker no longer exists.</p></div></div>`;
-    const f = T.primaryField(t); const p = f ? T.progress(t, f) : null; const entries = T.entriesOf(t.id).slice(0, 25); const st = T.streak(t);
+    const f = T.primaryField(t); const p = f ? T.progress(t, f) : null; const entries = T.entriesOf(t.id).slice(0, 25); const st = T.consistency(t);
     return h`<div class="screen tracker"><header class="top"><button class="icon-btn" data-act="back" aria-label="Back">${icon('chevronL', 22)}</button><h1 class="grow center-t">${t.name}</h1><button class="icon-btn" data-act="menu" aria-label="More">${icon('more', 22)}</button></header>
       <section class="card"><div class="row gap center">${p ? ring({ pct: Math.min(1, p.pct), size: 76, stroke: 8, color: p.met ? 'var(--green)' : color(t), label: `${Math.round(Math.min(p.pct, 1.99) * 100)}%`, sub: p.period === 'goal' ? 'to goal' : p.period === 'week' ? 'week' : 'today' }) : h`<span class="t-ic lead big-ic" style="color:${color(t)}">${icon(t.icon, 32)}</span>`}
-        <div class="grow"><div class="headline">${T.summaryLine(t)}</div>${t.description ? h`<p class="small muted">${t.description}</p>` : ''}${st > 1 ? h`<span class="pill pill-green">${st}-day streak</span>` : ''}</div></div>
+        <div class="grow"><div class="headline">${T.summaryLine(t)}</div>${t.description ? h`<p class="small muted">${t.description}</p>` : ''}${st.n >= 3 ? h`<span class="pill pill-green" title="Rolling consistency — a missed day doesn't reset anything">Logged ${st.days} of the last ${st.window} days</span>` : ''}</div></div>
         <div class="row gap wrap"><button class="btn btn-primary" data-act="log">${icon('plus', 16)} Log</button>${f?.quick?.map((q) => h`<button class="chip-btn" data-act="quick" data-f="${f.id}" data-v="${q}">+${q}${f.unit ? ` ${f.unit}` : ''}</button>`) || ''}</div></section>
       ${f ? goalSection(t, f) : ''}
       ${t.fields.filter((x) => T.isNumericField(x) || x.type === 'yesno').map((x) => { const s = T.stats(t, x, 30); const pts = T.series(t, x, 30); return h`<section class="card"><div class="row between"><span class="eyebrow">${x.label} · last 30 days</span><span class="pill">${T.AGGS[x.agg].toLowerCase()} per day</span></div>

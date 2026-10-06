@@ -23,6 +23,7 @@ import * as GC from '../gcal.js';
 import { TONES, getTone, nudgeText } from '../tone.js';
 import { NUDGE_META, checkinConfig } from '../routines.js';
 import { sync, flush, syncNow, hasPending, clearSyncState, stopSync } from '../sync.js';
+import { controlCardHTML } from '../control-ui.js';
 import { forgetUser, logoutRequest, deleteAccountRequest } from '../account.js';
 
 const MODELS = ['openai/gpt-oss-20b', 'openai/gpt-oss-120b', 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'meta-llama/llama-4-scout-17b-16e-instruct'];
@@ -136,7 +137,7 @@ export default {
         ${hasDemo() ? h`<button class="btn" data-act="rmdemo">Remove demo data</button>` : h`<button class="btn" data-act="demo">Load demo data</button>`}
         <button class="btn btn-danger-ghost" data-act="reset">${icon('trash', 18)} Reset all data</button></div>
         <p class="muted small">${isPersistent() ? 'Stored in IndexedDB on this device.' : 'Private browsing detected: data lives in memory only and will be lost when you close this tab. Export to keep it.'} Exports never include your API key.</p></section>
-      ${versionCard()}
+      ${controlCardHTML()}${versionCard()}
       <p class="center muted tiny">LifeOS 2 · local-first · estimates, not medical advice</p></div>`;
   },
   mount(root) {

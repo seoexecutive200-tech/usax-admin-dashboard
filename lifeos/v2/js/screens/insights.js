@@ -9,6 +9,7 @@ import { commit } from '../sheets.js';
 import { CORE_SYSTEM, EXPERIMENT } from '../prompts.js';
 import { buildContext } from '../ai-context.js';
 import { navigate, rerender } from '../router.js';
+import { discoverCardHTML } from '../discover-ui.js';
 import { askCardHTML, askActions, askInputs, mapQuestion, askState } from '../ask-ui.js';
 
 let days = 7; let dayView = 'today'; let busy = '';
@@ -59,6 +60,7 @@ export default {
         ${pats.length ? pats.map((p) => h`<div class="card pattern"><p>${p.text}</p><div class="row gap wrap"><span class="pill">${p.n} observed days</span><span class="pill ${p.confidence === 'High' ? 'pill-green' : p.confidence === 'Moderate' ? 'pill-amber' : ''}">${p.confidence} confidence</span></div><small class="muted">An association in your data — not proof of cause.</small></div>`)
         : h`<div class="card"><p><b>I don’t know yet.</b> ${n < 7 ? `I have ${n} day${n === 1 ? '' : 's'} of data; patterns need at least about 6 matching days.` : 'Nothing stands out as reliable so far.'} I’ll keep watching rather than guess.</p><button class="btn btn-sm" data-act="newexp">${icon('target', 14)} Try a small experiment</button></div>`}
       </section>
+      ${discoverCardHTML()}
       ${askCardHTML()}
       <section class="card"><div class="row between"><span class="eyebrow">Daily report</span><div class="seg sm" role="radiogroup" aria-label="Day">${[['today', 'Today'], ['yesterday', 'Yesterday']].map(([v, l]) => h`<button class="seg-btn ${dayView === v ? 'on' : ''}" role="radio" aria-checked="${dayView === v}" data-act="dview" data-v="${v}">${l}</button>`)}</div></div>
         <p class="story-text">${dr.narrative}</p>

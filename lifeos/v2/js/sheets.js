@@ -63,6 +63,7 @@ export function eventFormSheet({ event = null, defaults = {}, onSaved = null } =
       </div>
       ${field('Starts', h`<input class="input" type="datetime-local" name="start" value="${toLocalInput(start)}" required>`, `Local time (${store.profile().timezone})`)}
       <div class="field"><span class="field-label">Importance</span>${seg('importance', [['low', 'Low'], ['normal', 'Normal'], ['high', 'High']], e.importance || defaults.importance || 'normal')}</div>
+      <div class="field"><span class="field-label">Flexibility</span>${seg('flex', [['fixed', 'Fixed'], ['preferred', 'Preferred'], ['flexible', 'Flexible']], e.flex || 'fixed')}<small class="muted">Fixed: LifeOS never moves it. Preferred: only suggests, never moves on its own. Flexible: fine to rearrange when you approve.</small></div>
       <label class="check"><input type="checkbox" name="prep" ${e.prepRequired || defaults.importance === 'high' ? 'checked' : ''}><span>Needs preparation (enables a readiness view)</span></label>
       ${field('Location or link', h`<input class="input" name="location" maxlength="200" value="${e.location || defaults.location || ''}" placeholder="Room, address or video link">`)}
       ${field('Notes', h`<textarea class="input" name="notes" rows="3" maxlength="1000" placeholder="Context the advisor can use to suggest prep">${e.notes || ''}</textarea>`)}
@@ -76,7 +77,7 @@ export function eventFormSheet({ event = null, defaults = {}, onSaved = null } =
         const startV = new Date(f.get('start'));
         const err = !title ? 'Give the event a title.' : isNaN(startV) ? 'Pick a valid start time.' : '';
         if (err) { s.el.querySelector('#ev-err').textContent = err; return; }
-        const payload = { title, type: f.get('type'), start: startV.toISOString(), durationMin: Number(f.get('dur')), importance: segVal(s.el, 'importance', 'normal'), prepRequired: f.get('prep') === 'on', location: f.get('location'), notes: f.get('notes') };
+        const payload = { title, type: f.get('type'), start: startV.toISOString(), durationMin: Number(f.get('dur')), importance: segVal(s.el, 'importance', 'normal'), flex: segVal(s.el, 'flex', 'fixed'), prepRequired: f.get('prep') === 'on', location: f.get('location'), notes: f.get('notes') };
         if (event) { payload.id = event.id; payload.end = addMinutes(startV, Number(f.get('dur'))).toISOString(); }
         s.close();
         const res = await commit({ type: event ? 'update_event' : 'create_event', payload });
@@ -94,7 +95,7 @@ export function eventDetailSheet(id) {
   const sh = openSheet({
     title: ev.title, tall: true,
     body: h`<div class="stack">
-      <div class="row gap wrap"><span class="pill">${ev.type.replace('_', ' ')}</span><span class="pill ${ev.importance === 'high' ? 'pill-amber' : ''}">${ev.importance} importance</span>${ev.origin === 'ai' ? h`<span class="pill pill-ai">${icon('sparkle', 13)} AI suggested</span>` : ''}${ev.status !== 'scheduled' ? h`<span class="pill pill-green">${ev.status}</span>` : ''}</div>
+      <div class="row gap wrap"><span class="pill">${ev.type.replace('_', ' ')}</span><span class="pill ${ev.importance === 'high' ? 'pill-amber' : ''}">${ev.importance} importance</span><span class="pill">${ev.flex || 'fixed'}</span>${ev.origin === 'ai' ? h`<span class="pill pill-ai">${icon('sparkle', 13)} AI suggested</span>` : ''}${ev.status !== 'scheduled' ? h`<span class="pill pill-green">${ev.status}</span>` : ''}</div>
       <p class="strong">${fmtDate(ev.start, { weekday: 'long', day: 'numeric', month: 'long' })} · ${ev.allDay ? 'All day' : `${fmtTime(ev.start)}${ev.end && ev.end !== ev.start ? ` – ${fmtTime(ev.end)}` : ''}`}</p>
       ${ev.origin === 'google' ? h`<div class="card inset"><p class="small">${icon('calendar', 14)} From your Google Calendar. Change it there and it updates here. You can still add a checklist, prepare for it or use it in tasks and reminders.</p></div>` : ''}
       ${ev.location ? h`<p class="muted">${icon('external', 14)} ${/^https?:\/\//.test(ev.location) ? h`<a href="${ev.location}" target="_blank" rel="noopener noreferrer">${ev.location}</a>` : ev.location}</p>` : ''}

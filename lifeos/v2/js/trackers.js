@@ -155,6 +155,11 @@ export function stats(t, field, days = 30) {
   const all = rawValues(entriesOf(t.id).filter((e) => dayKey(e.ts) >= dayKey(addDays(new Date(), -(days - 1)))), field);
   return { days: pts.length, avg: mean(vals), min: vals.length ? Math.min(...vals) : null, max: vals.length ? Math.max(...vals) : null, total: sum(vals), entries: all.length };
 }
+/** Rolling consistency (no streaks to lose): how many of the last N days have an entry. */
+export function consistency(t, now = new Date(), window = 14) {
+  let days = 0; for (let i = 0; i < window; i++) if (dayEntriesExist(t, dayKey(addDays(now, -i)))) days++;
+  return { days, window, n: days, pct: Math.round((days / window) * 100) };
+}
 export function streak(t, now = new Date()) {
   let n = 0; let d = new Date(now);
   if (!dayEntriesExist(t, dayKey(d))) d = addDays(d, -1); // today may not be logged yet

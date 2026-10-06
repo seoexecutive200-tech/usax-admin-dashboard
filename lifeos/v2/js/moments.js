@@ -30,7 +30,7 @@ export function facts(now = new Date()) {
   const mins = (d) => (+new Date(d) - +now) / 60000;
   const st = A.currentState(now);
   const lastLog = (type) => store.all('logs').filter((l) => l.type === type).map((l) => +new Date(l.ts)).sort((a, b) => b - a)[0] || 0;
-  const tasks = store.all('tasks').filter((t) => t.status !== 'done' && (!t.due || dayKey(t.due) <= key)).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+  const tasks = store.all('tasks').filter((t) => t.status !== 'done' && !t.someday && (!t.due || dayKey(t.due) <= key)).sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
   const goals = T.allTrackers().flatMap((t) => { const f = T.primaryField(t); return f?.target?.period === 'goal' && !T.entriesOnDay(t.id, key).length ? [{ t, f }] : []; });
   return { now, key, part, hour, name: store.profile().name, evs, mins, st, lastLog, tasks, goals, inEvent: evs.some((e) => mins(e.start) <= 0 && mins(e.end) > 0), working: R.activeNow(now).length > 0 };
 }
@@ -86,7 +86,7 @@ export function candidates(now = new Date()) {
     q1: { text: 'Which one should we start with?', chips: due.map((t) => ({ l: t.title.length > 34 ? `${t.title.slice(0, 33)}…` : t.title, v: t.id })), run: async (v) => { const t = store.get('tasks', v); F.start({ label: t?.title || 'Task', minutes: 25, quiet: true, track: true, taskId: v }); return { done: 'Focus is on — 25 minutes.', open: 'focus-open' }; } } } }); }
 
   // 8. never dead: a gentle, useful default
-  out.push({ key: `idle:${Math.floor(+now / 1800000)}`, kind: 'idle', label: 'What’s up?', open: f.part === 'morning' ? 'What’s the plan for today?' : f.part === 'evening' || f.part === 'night' ? 'How’s your evening shaping up?' : 'What are you working on right now?', start: 'q1', idle: true, steps: {
+  out.push({ key: `idle:${Math.floor(+now / 1800000)}`, kind: 'idle', label: 'What’s up?', open: `Nothing needs your attention right now. ${f.part === 'morning' ? 'What’s the plan for today?' : f.part === 'evening' || f.part === 'night' ? 'How’s your evening shaping up?' : 'What are you working on right now?'}`, start: 'q1', idle: true, steps: {
     q1: { text: '', chips: [{ l: 'Start focus', v: 'focus' }, { l: 'Plan my day', v: 'plan' }, { l: 'Log something', v: 'log' }, { l: 'Talk to me', v: 'chat' }], input: { placeholder: 'Type what you’re doing — I’ll start a focus session' }, run: async (v) => (v === 'focus' ? { done: '', open: 'focus' } : v === 'plan' ? { done: '', open: 'plan' } : v === 'log' ? { done: '', open: 'log' } : v === 'chat' ? { done: '', open: 'chat' } : v ? (F.start({ label: v, minutes: 25, quiet: true, track: true }), { done: `Focus on: ${v}.`, open: 'focus-open' }) : { done: '' }) } } });
   return out;
 }
